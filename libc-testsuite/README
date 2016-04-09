@@ -1,0 +1,32 @@
+
+libc-testsuite README
+
+
+This package is a collection of unit tests to measure the correctness
+and robustness of a C/POSIX standard library implementation. It was
+developed as a tool for testing musl and its first-generation
+predecessor. As such, most of the tests were written to be
+self-contained and not to make assumptions about other library
+interfaces being present or working correctly.
+
+At present the whole testsuite builds as a single binary and runs as a
+single process (aside from a few child processes that are part of the
+tests). This makes it extremely fast, but also means that corruption
+of the global state due to bugs in one set of interfaces may affect
+later tests. If necessary, the main test dispatch module could be
+modified to fork before running each test, ensuring that each one
+begins with a clean working state.
+
+
+Building and running the tests
+
+If needed, a file named config.mak can be created to override the
+default CC, CFLAGS, etc. used by the build process. Otherwise, simply
+run "make" in the libc-testsuite directory to build the tests. Then
+run "./testsuite" or "make test" to run the tests.
+
+The following additional CFLAGS options may be of interest:
+
+-DHAVE_BSD_STRL - tests the BSD strlcpy and strlcat functions.
+-DDISABLE_SLOW_TESTS - disables testing 2GB snprintf.
+

@@ -1,0 +1,308 @@
+#include <stdio.h>
+#include <unistd.h>
+#include <errno.h>
+#include <string.h>
+#include <strings.h>
+#include <stdlib.h>
+#include <libgen.h>
+#include <wchar.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <dirent.h>
+#include <fnmatch.h>
+#include <glob.h>
+#include <netdb.h>
+#include <pwd.h>
+#include <grp.h>
+#include <ctype.h>
+#include <time.h>
+#include <regex.h>
+#include <iconv.h>
+#include <ftw.h>
+#include <sys/stat.h>
+#include <limits.h>
+
+extern char **environ;
+
+static char *classes(wchar_t c)
+{
+	int i;
+	static char buf[13];
+	char *p = buf;
+	static const char classname[13][6] = {
+		"alnum", "alpha", "blank", "cntrl",
+		"digit", "graph", "lower", "print",
+		"punct", "space", "upper", "xdigit", ""
+	};
+	static const char flags[] = "nabcdglp!sux";
+	memset(buf, 0, sizeof buf);
+	for (i=0; classname[i][0]; i++)
+		if (iswctype(c, wctype(classname[i])))
+			*p++ = flags[i];
+		else *p++ = '-';
+	return buf;
+}
+
+static int walker(const char *path, const struct stat *st, int type, struct FTW *ftws)
+{
+	char *types[] = { "", "F", "D", "DNR", "NS", "SL", "DP", "SLN" };
+	printf("%d %s: %s: %s\n", ftws->level, path, path+ftws->base, types[type]);
+	return 0;
+}
+
+int main(int argc, char *argv[])
+{
+	int c, i, j, k, l;
+	struct passwd *pw;
+	struct group *gr;
+	struct hostent *he;
+	struct addrinfo *aih, *ai, req = { 0 };
+	struct in_addr addr = { inet_addr("127.0.0.1") };
+	glob_t gl;
+	DIR *dir;
+	struct tm tm;
+	time_t mytime;
+	char foo[256], bar[256];
+	regex_t rx;
+	regmatch_t rm;
+	iconv_t cd;
+
+	while ((c = getopt(argc, argv, ":u:g:h:G:F:f:H46Ct:US:r:ei:w:")) >= 0) switch (c) {
+	case 'e':
+		for (i=0; i<128; i++) {
+			printf("%3d: %s\n", i, strerror(i));
+		}
+		break;
+	case 'r':
+		if ((j = regcomp(&rx, optarg, REG_EXTENDED))) {
+			regerror(j, &rx, foo, sizeof foo);
+			printf("regcomp error %d: %s\n", j, foo);
+			break;
+		}
+		for (;;) {
+			fgets(foo, sizeof foo, stdin);
+			if (feof(stdin)) break;
+			l = strlen(foo);
+			if (foo[l-1] == '\n') foo[l-1] = 0;
+			k = regexec(&rx, foo, 1, &rm, 0);
+			switch (k) {
+			case 0:
+				printf("matched %.*s\n", (int)(rm.rm_eo-rm.rm_so), foo+rm.rm_so);
+				break;
+			default:
+				regerror(k, &rx, foo, sizeof foo);
+				printf("%s\n", foo);
+				break;
+			}
+		}
+		regfree(&rx);
+		break;
+	case 'i':
+		cd = iconv_open("UTF-8", optarg);
+		printf("iconv_open returned %lx\n", (long)cd);
+		if (cd != (iconv_t)-1) for (;;) {
+			char *s=foo, *t=bar;
+			size_t l, k = sizeof bar;
+			fgets(foo, sizeof foo, stdin);
+			if (feof(stdin)) break;
+			l = strlen(foo);
+			if (foo[l-1] == '\n') foo[l-1] = 0;
+			errno = 0;
+			printf("iconv returned %zu\n", iconv(cd, &s, &l, &t, &k));
+			*t = 0;
+			printf("errno=%d (%s), inb=%zu, outb=%zu\nresult=[%s]\n", errno, strerror(errno), l, k, bar);
+		}
+		break;
+	case 'S':
+		printf("sscanf returned %d\n", sscanf(optarg, "%3i%i    %i%[abcdefg] %d", &i, &j, &k, foo, &c));
+		printf("input=[%s] i=%d j=%d k=%d foo=[%s] c=%d\n", optarg, i, j, k, foo, c);
+		break;
+	case 'U':
+		for (;1;) {
+			wchar_t wc;
+			fgets(foo, sizeof foo, stdin);
+			if (feof(stdin)) break;
+			for (i=j=0; foo[i] && foo[i] != '\n'; i++) {
+				if (1 && (l = mbtowc(&wc, foo+i, 4)) < 0) { bar[j++] = '?'; continue; }
+				if (0 && (l = mbrtowc(&wc, foo+i, 1, NULL)) < 0) {
+					if (l == -2) continue;
+					bar[j++] = '?';
+					mbrtowc(NULL, NULL, 0, NULL);
+					if ((l = mbrtowc(&wc, foo+i, 1, NULL)) == -1) {
+						mbrtowc(NULL, NULL, 0, NULL);
+						continue;
+					} else if (l == -2) continue;
+				}
+				if (wc > 126 || wc < 32) bar[j++] = '.';
+				else bar[j++] = wc;
+				i += l-1;
+			}
+			bar[j++] = 0;
+			foo[i++] = 0;
+			puts(bar);
+		}
+		if (1) {
+			unsigned char mbs[4] = { 0, 0, 0, 0 };
+			int l;
+			wchar_t c;
+
+			for (mbs[0]=0x00; mbs[0]<0xf5; mbs[0]++)
+			for (mbs[1]=0x80; mbs[1]<(mbs[0]<0xc0?0x81:0xc0); mbs[1]++)
+			for (mbs[2]=0x80; mbs[2]<(mbs[0]<0xe0?0x81:0xc0); mbs[2]++)
+			for (mbs[3]=0x80; mbs[3]<(mbs[0]<0xf0?0x81:0xc0); mbs[3]++) {
+				l = mbtowc(&c, mbs, 4);
+				//l = mbrtowc(&c, mbs, 4, NULL);
+				//mbrtowc(NULL, NULL, 0, NULL);
+				if (l < 0) c = 0;
+				printf("%02x %02x %02x %02x [%2d %06x %2d %s] %lc\n", mbs[0], mbs[1], mbs[2], mbs[3], l, c, wcwidth(c), classes(c), iscntrl(c) || c<0 ? L' ' : c);
+			}
+			//l = wcrtomb(mbs, i, NULL);
+			//printf("char %06x: %02x %02x %02x %02x [%d]\n", i, mbs[0], mbs[1], mbs[2], mbs[3], l);
+		}
+		for (i=0; i<0; i++) {
+			unsigned char mbs[7] = { 0, 0, 0, 0, 0, 0, 0 };
+			int l;
+			wchar_t c;
+			l = wcrtomb(mbs, i, NULL);
+			//printf("char %06x: %02x %02x %02x %02x [%d]\n", i, mbs[0], mbs[1], mbs[2], mbs[3], l);
+			l = mbrtowc(&c, mbs, 4, NULL);
+			printf("char %06x: %02x %02x %02x %02x [%d %06x]\n", i, mbs[0], mbs[1], mbs[2], mbs[3], l, c);
+		}
+		break;
+	case 't':
+		mytime = atoll(optarg);
+		for (i=0; i<6; i++) {
+			time_t time2 = mytime + 1800*i;
+			tm = *localtime(&time2);
+			strftime(foo, sizeof foo, "%c", &tm);
+			printf("%s [yd=%d dst=%d]\n", foo, tm.tm_yday, tm.tm_isdst);
+		}
+		break;
+	case 'H':
+		printf("hello, world!\n");
+		break;
+	case 'C':
+		req.ai_flags ^= AI_CANONNAME;
+		break;
+	case '4':
+		req.ai_family = AF_INET;
+		break;
+	case '6':
+		req.ai_family = AF_INET6;
+		break;
+	case 'u':
+		if ((pw = getpwnam(optarg)) || (isdigit(optarg[0]) && (pw = getpwuid(atoi(optarg))))) {
+			printf("pw_name   = %s\n", pw->pw_name);
+			printf("pw_passwd = %s\n", pw->pw_passwd);
+			printf("pw_uid    = %d\n", pw->pw_uid);
+			printf("pw_gid    = %d\n", pw->pw_gid);
+			printf("pw_gecos  = %s\n", pw->pw_gecos);
+			printf("pw_dir    = %s\n", pw->pw_dir);
+			printf("pw_shell  = %s\n", pw->pw_shell);
+		}
+		break;
+	case 'g':
+		if ((gr = getgrnam(optarg)) || (isdigit(optarg[0]) && (gr = getgrgid(atoi(optarg))))) {
+			printf("gr_name   = %s\n", gr->gr_name);
+			printf("gr_passwd = %s\n", gr->gr_passwd);
+			printf("gr_gid    = %d\n", gr->gr_gid);
+			for (i=0; gr->gr_mem[i]; i++)
+				printf("gr_mem[%d] = %s\n", i, gr->gr_mem[i]);
+		}
+		break;
+	case 'h':
+		l = getaddrinfo(optarg, NULL, &req, &aih);
+		printf("getaddrinfo returned %d\n", l);
+		if (!l) {
+			char tmp[100];
+			printf("aih: %p\n", aih);
+			if (aih->ai_canonname)
+				printf("canonical name: %s\n", aih->ai_canonname);
+			for (ai=aih; ai; ai=ai->ai_next) {
+				if (!getnameinfo(ai->ai_addr, ai->ai_addrlen, tmp, sizeof tmp, NULL, 0, NI_NUMERICHOST))
+					printf("address = %s\n", tmp);
+				else
+					printf("address = %08x\n", ntohl(((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr));
+			}
+			if (!getnameinfo(aih->ai_addr, aih->ai_addrlen, tmp, sizeof tmp, NULL, 0, 0)) {
+				printf("getnameinfo: %s\n", tmp);
+			}
+			freeaddrinfo(aih);
+		}
+		if ((he = gethostbyname(optarg))) {
+			char addr[4];
+			printf("gethostbyname reports:\n");
+			for (j=0; he->h_addr_list[j]; j++)
+				printf("%d.%d.%d.%d\n", (unsigned char)he->h_addr_list[j][0], (unsigned char)he->h_addr_list[j][1], (unsigned char)he->h_addr_list[j][2], (unsigned char)he->h_addr_list[j][3]);
+			for (j=0; he->h_aliases[j]; j++)
+				printf("alias %s\n", he->h_aliases[j]);
+			printf("name %s\n", he->h_name);
+			memcpy(addr, he->h_addr_list[0], 4);
+#if 1
+			if ((he = gethostbyaddr(addr, 4, AF_INET))) {
+				printf("gethostbyaddr reports:\n");
+				for (j=0; he->h_addr_list[j]; j++)
+					printf("%d.%d.%d.%d\n", (unsigned char)he->h_addr_list[j][0], (unsigned char)he->h_addr_list[j][1], (unsigned char)he->h_addr_list[j][2], (unsigned char)he->h_addr_list[j][3]);
+				for (j=0; he->h_aliases && he->h_aliases[j]; j++)
+					printf("alias %s\n", he->h_aliases[j]);
+				printf("name %s\n", he->h_name);
+			}
+#endif
+		}
+		break;
+	case 'G':
+		printf("matching %s\n", optarg);
+		glob(optarg, GLOB_MARK, NULL, &gl);
+		for (j=0; j<gl.gl_pathc; j++)
+			printf(" [%d] [%s]\n", j, gl.gl_pathv[j]);
+		globfree(&gl);
+		break;
+	case 'F':
+		pw = getpwuid(getuid());
+		if (pw && (dir = opendir(pw->pw_dir))) {
+			struct dirent *de;
+			while ((de = readdir(dir)))
+				if (!fnmatch(optarg, de->d_name, 0))
+					printf("%s\n", de->d_name);
+			closedir(dir);
+		}
+		break;
+	case 'f':
+		printf("%s -> [%s]\n", optarg, inet_ntoa(addr));
+		if (addr.s_addr != (unsigned int)-1) {
+			char foo[100];
+			struct sockaddr_in sin = { AF_INET, htons(79), addr };
+			int sock = socket(PF_INET, SOCK_STREAM, 0);
+			connect(sock, (void *)&sin, sizeof sin);
+			write(sock, optarg, strlen(optarg));
+			write(sock, "\n", 1);
+			while ((l = read(sock, foo, sizeof foo)) > 0)
+				fwrite(foo, 1, l, stdout);
+			fflush(stdout);
+			close(sock);
+		}
+		break;
+	case 'w':
+		printf("nftw returned %d\n", nftw(optarg, walker, 1024, 0));
+		printf("errno=%d (%s)\n", errno, strerror(errno));
+		break;
+	case ':':
+		for (;;) {
+			char foo[100], opt[3] = { '-', optopt, 0 };
+			char *newargs[] = { argv[0], opt, foo, NULL };
+			fgets(foo, sizeof foo, stdin);
+			if (feof(stdin)) return 0;
+			i = strlen(foo);
+			if (!i) return 0;
+			if (foo[i-1] == '\n') foo[i-1] = 0;
+			optind = 1;
+			main(3, newargs);
+		}
+		break;
+	case '?':
+		printf("unknown option %lc\n", optopt);
+		return -1;
+	}
+	return 0;
+}
