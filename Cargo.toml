@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["Adam Perry <adam.n.perry@gmail.com>"]
 
 [lib]
-name = "murslibc"
+name = "mursl"
 crate-type = ["staticlib", "dylib"]
 
 [dependencies]
