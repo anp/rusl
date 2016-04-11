@@ -4,6 +4,8 @@ use c_types::*;
 use platform::{EINVAL, ENOSYS};
 use syscall_mgt::syscall_return;
 
+use time::timespec;
+
 pub const CLOCK_REALTIME: clockid_t = 0;
 pub const CLOCK_MONOTONIC: clockid_t = 1;
 pub const CLOCK_PROCESS_CPUTIME_ID: clockid_t = 2;
@@ -16,36 +18,6 @@ pub const CLOCK_REALTIME_ALARM: clockid_t = 8;
 pub const CLOCK_BOOTTIME_ALARM: clockid_t = 9;
 pub const CLOCK_SGI_CYCLE: clockid_t = 10;
 pub const CLOCK_TAI: clockid_t = 11;
-
-#[repr(C)]
-pub struct tm {
-    tm_sec: c_int,
-    tm_min: c_int,
-    tm_hour: c_int,
-    tm_mday: c_int,
-    tm_mon: c_int,
-    tm_year: c_int,
-    tm_wday: c_int,
-    tm_yday: c_int,
-    tm_isdst: c_int,
-    __tm_gmtoff: c_longlong,
-    __tm_zone: *const c_schar,
-}
-
-#[repr(C)]
-pub struct timespec {
-    tv_sec: time_t,
-    tv_nsec: c_longlong,
-}
-
-#[repr(C)]
-pub struct itimerspec {
-    interval: timespec,
-    value: timespec,
-}
-
-#[repr(C)]
-pub struct sigevent;
 
 #[no_mangle]
 pub unsafe extern "C" fn __clock_gettime(clock: clockid_t, spec: &mut timespec) -> c_int {

@@ -48,3 +48,4 @@ pub type cc_t = c_uchar;
 pub type clock_t = u64;
 pub type time_t = i64;
 pub type clockid_t = c_int;
+pub type suseconds_t = c_longlong;
