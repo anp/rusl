@@ -103,3 +103,8 @@ pub unsafe extern "C" fn clock_getcpuclockid(pid: pid_t, clock: *mut clockid_t) 
         0
     }
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn clock_getres(clock: clockid_t, spec: &mut timespec) -> c_int {
+    syscall!(CLOCK_GETRES, clock, spec as *mut timespec) as i32
+}
