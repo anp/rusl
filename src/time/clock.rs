@@ -37,7 +37,7 @@ pub unsafe extern "C" fn clock_gettime(clock: clockid_t, spec: &mut timespec) ->
         r = -EINVAL;
     }
 
-    syscall_return(r as u64) as c_int
+    syscall_return(r as usize) as c_int
 }
 
 #[no_mangle]

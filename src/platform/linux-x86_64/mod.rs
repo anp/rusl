@@ -1,3 +1,3 @@
 pub use self::errno::*;
 
-mod errno;
+pub mod errno;

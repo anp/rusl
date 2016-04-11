@@ -3,3 +3,4 @@ pub mod acct;
 pub mod alarm;
 pub mod chdir;
 pub mod chown;
+pub mod close;
