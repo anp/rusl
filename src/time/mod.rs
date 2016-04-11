@@ -29,16 +29,20 @@ pub struct itimerspec {
     value: timespec,
 }
 
+pub const ITIMER_REAL: isize = 0;
+pub const ITIMER_VIRTUAL: isize = 1;
+pub const ITIMER_PROF: isize = 2;
+
 #[repr(C)]
 pub struct timeval {
-    tv_sec: time_t,
-    tv_usec: suseconds_t,
+    pub tv_sec: time_t,
+    pub tv_usec: suseconds_t,
 }
 
 #[repr(C)]
 pub struct itimerval {
-	it_interval: timeval,
-	it_value: timeval,
+	pub it_interval: timeval,
+	pub it_value: timeval,
 }
 
 #[repr(C)]
