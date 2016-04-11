@@ -87,3 +87,19 @@ pub unsafe extern "C" fn clock() -> clock_t {
 
     (spec.tv_sec * 1000000 + spec.tv_nsec / 1000) as clock_t
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn clock_getcpuclockid(pid: pid_t, clock: *mut clockid_t) -> c_int {
+    let mut spec = timespec {
+        tv_sec: 0, tv_nsec: 0
+    };
+
+    let id = ((-pid - 1) * 8) + 2;
+    let r = syscall!(CLOCK_GETRES, id, &mut spec as *mut timespec);
+    if r != 0 {
+        -(r as c_int)
+    } else {
+        *clock = id;
+        0
+    }
+}
