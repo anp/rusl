@@ -6,6 +6,7 @@
 #[macro_use]
 extern crate syscall;
 
+pub mod string;
 pub mod time;
 pub mod unistd;
 

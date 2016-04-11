@@ -1,6 +1,6 @@
 use c_types::*;
 
-use time::{itimerval, timespec, timeval, ITIMER_REAL};
+use time::{itimerval, timeval, ITIMER_REAL};
 
 #[no_mangle]
 pub unsafe extern "C" fn alarm(seconds: c_uint) -> c_uint {
