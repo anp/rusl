@@ -21,23 +21,23 @@ build_musl() {
     cd ${BASE_DIR}
 }
 
-build_mursl() {
+build_rusl() {
     cd ${BASE_DIR}
     cargo build --release
-    cp target/release/libmursl.a ${BUILD_DIR}/usr/lib
+    cp target/release/librusl.a ${BUILD_DIR}/usr/lib
 }
 
-combine_mursl_and_musl() {
+combine_rusl_and_musl() {
     # move the two archives into a tempdir
     cd ${BUILD_DIR}/usr/lib
     LIB_TEMP_DIR=${BUILD_DIR}/usr/lib/temp
     mkdir ${LIB_TEMP_DIR}
-    mv libmursl.a ${LIB_TEMP_DIR}/
+    mv librusl.a ${LIB_TEMP_DIR}/
 
     # extract the object files
     # and recombine them so that the Rust symbols are alongside the C symbols
     cd ${LIB_TEMP_DIR}
-    ar -x libmursl.a
+    ar -x librusl.a
     ar -r ../libc.a ${LIB_TEMP_DIR}/*.o
     rm -dr ${LIB_TEMP_DIR}
 }
@@ -48,16 +48,16 @@ build_and_run_tests() {
     cp config.mak.def config.mak
     echo "CFLAGS += --static -isystem ${BUILD_DIR}/usr/include -B${BUILD_DIR}/usr/lib -L${BUILD_DIR}/usr/lib" >> config.mak
     echo "LDFLAGS += --static -isystem ${BUILD_DIR}/usr/include -B${BUILD_DIR}/usr/lib -L${BUILD_DIR}/usr/lib" >> config.mak
-    make CC=${BUILD_DIR}/usr/bin/musl-gcc
-    cat ${TESTS_SRC_DIR}/src/REPORT | grep FAIL > ${BASE_DIR}/mursl_failures
+    make -j ${NUM_CPUS} CC=${BUILD_DIR}/usr/bin/musl-gcc
+    cat ${TESTS_SRC_DIR}/src/REPORT | grep FAIL > ${BASE_DIR}/rusl_failures
 
     echo "#####################################################################"
     echo "#####################################################################"
     echo "#####################################################################"
     echo "#####################################################################"
-    echo "Tests that failed on mursl but not on vanilla musl:"
+    echo "Tests that failed on rusl but not on vanilla musl:"
     echo "#####################################################################"
-    grep -v -F -x -f ${BASE_DIR}/baseline_failures ${BASE_DIR}/mursl_failures
+    grep -v -F -x -f ${BASE_DIR}/baseline_failures ${BASE_DIR}/rusl_failures
 
     cd ${BASE_DIR}
 }
@@ -66,6 +66,6 @@ build_and_run_tests() {
 
 mkdir -p ${BUILD_DIR}/usr
 build_musl
-build_mursl
-combine_mursl_and_musl
+build_rusl
+combine_rusl_and_musl
 build_and_run_tests
