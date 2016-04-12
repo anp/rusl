@@ -1,7 +1,7 @@
 use c_types::*;
 
 #[no_mangle]
-pub unsafe extern "C" fn stpcpy(dest: *mut c_schar, source: *const c_schar) -> *mut c_schar {
+pub unsafe extern "C" fn stpcpy(dest: *mut c_char, source: *const c_char) -> *mut c_char {
 	// TODO(adam) compare and copy as word-size chunks
 
 	for i in 0.. {

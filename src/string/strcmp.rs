@@ -3,7 +3,7 @@ use core::i32;
 use c_types::*;
 
 #[no_mangle]
-pub unsafe extern "C" fn strcmp(l: *const c_schar, r: *const c_schar) -> c_int {
+pub unsafe extern "C" fn strcmp(l: *const c_char, r: *const c_char) -> c_int {
     // TODO(adam) convert to checking word-size chunks
     for i in 0.. {
         let lc = *l.offset(i);

@@ -14,7 +14,7 @@ pub struct tm {
     tm_yday: c_int,
     tm_isdst: c_int,
     __tm_gmtoff: c_longlong,
-    __tm_zone: *const c_schar,
+    __tm_zone: *const c_char,
 }
 
 #[repr(C)]
