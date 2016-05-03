@@ -15,7 +15,10 @@ clean_and_exit_build_dir() {
 
 build_musl() {
     cd ${MUSL_SRC_DIR}
-    ./configure --prefix=${BUILD_DIR}/usr --disable-shared --enable-static
+    ./configure --prefix=${BUILD_DIR}/usr \
+        --disable-shared \
+        --enable-static \
+        --disable-visibility
     make -j ${NUM_CPUS}
     make install
     cd ${BASE_DIR}
@@ -46,8 +49,8 @@ build_and_run_tests() {
     cd ${TESTS_SRC_DIR}
 
     cp config.mak.def config.mak
-    echo "CFLAGS += --static -isystem ${BUILD_DIR}/usr/include -B${BUILD_DIR}/usr/lib -L${BUILD_DIR}/usr/lib" >> config.mak
-    echo "LDFLAGS += --static -isystem ${BUILD_DIR}/usr/include -B${BUILD_DIR}/usr/lib -L${BUILD_DIR}/usr/lib" >> config.mak
+    echo "CFLAGS += -static -isystem ${BUILD_DIR}/usr/include -B${BUILD_DIR}/usr/lib -L${BUILD_DIR}/usr/lib" >> config.mak
+    echo "LDFLAGS += -static -isystem ${BUILD_DIR}/usr/include -B${BUILD_DIR}/usr/lib -L${BUILD_DIR}/usr/lib" >> config.mak
     make -j ${NUM_CPUS} CC=${BUILD_DIR}/usr/bin/musl-gcc
     cat ${TESTS_SRC_DIR}/src/REPORT | grep FAIL > ${BASE_DIR}/rusl_failures
 

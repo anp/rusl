@@ -1,11 +1,13 @@
 #![no_std]
-#![feature(lang_items)]
+#![feature(lang_items, linkage)]
 
 #![allow(non_camel_case_types)]
 
 #[macro_use]
 extern crate syscall;
 
+pub mod malloc;
+pub mod mmap;
 pub mod string;
 pub mod time;
 pub mod unistd;
