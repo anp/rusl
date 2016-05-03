@@ -9,6 +9,7 @@ extern crate syscall;
 pub mod malloc;
 pub mod mmap;
 pub mod string;
+pub mod thread;
 pub mod time;
 pub mod unistd;
 

@@ -1,4 +1,5 @@
 // most of these were copied from the rust-lang libc crate
+use core::i32;
 
 #[repr(u8)]
 pub enum c_void {
@@ -30,6 +31,8 @@ pub type c_longlong = i64;
 pub type c_ulonglong = u64;
 pub type intmax_t = i64;
 pub type uintmax_t = u64;
+
+pub const C_INT_MAX: i32 = i32::MAX;
 
 pub type size_t = usize;
 pub type ptrdiff_t = isize;
