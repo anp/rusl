@@ -15,3 +15,7 @@ pub unsafe extern fn mincore(address: *mut c_void, len: usize, vec: *mut u8) -> 
 pub unsafe extern fn mlock(address: *const c_void, len: usize) -> c_int {
     syscall!(MLOCK, address, len) as c_int
 }
+
+pub unsafe extern fn mlockall(flags: c_int) -> c_int {
+    syscall!(MLOCKALL, flags) as c_int
+}
