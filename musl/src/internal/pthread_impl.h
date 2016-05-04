@@ -128,14 +128,6 @@ int __timedwait_cp(volatile int *, int, clockid_t, const struct timespec *, int)
 void __wait(volatile int *, volatile int *, int, int);
 void __wake(volatile void *addr, int cnt, int priv);
 
-/*static inline void __wake(volatile void *addr, int cnt, int priv)
-{
-	if (priv) priv = 128;
-	if (cnt<0) cnt = INT_MAX;
-	__syscall(SYS_futex, addr, FUTEX_WAKE|priv, cnt) != -ENOSYS ||
-	__syscall(SYS_futex, addr, FUTEX_WAKE, cnt);
-}*/
-
 void __acquire_ptc(void);
 void __release_ptc(void);
 void __inhibit_ptc(void);

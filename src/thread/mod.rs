@@ -14,7 +14,7 @@ pub const FUTEX_WAIT_BITSET: c_int = 9;
 pub const FUTEX_PRIVATE: c_int = 128;
 pub const FUTEX_CLOCK_REALTIME: c_int = 256;
 
-
+#[no_mangle]
 pub unsafe extern fn __wake(address: *mut c_void, count: c_int, private: c_int) {
     let private = if private != 0 { 128 } else { private };
 
