@@ -15,10 +15,18 @@ pub const FUTEX_PRIVATE: c_int = 128;
 pub const FUTEX_CLOCK_REALTIME: c_int = 256;
 
 #[no_mangle]
-pub unsafe extern fn __wake(address: *mut c_void, count: c_int, private: c_int) {
-    let private = if private != 0 { 128 } else { private };
+pub unsafe extern "C" fn __wake(address: *mut c_void, count: c_int, private: c_int) {
+    let private = if private != 0 {
+        128
+    } else {
+        private
+    };
 
-    let count = if count < 0 { C_INT_MAX } else { count };
+    let count = if count < 0 {
+        C_INT_MAX
+    } else {
+        count
+    };
 
     let res = syscall!(FUTEX, address, FUTEX_WAKE | private, count);
 

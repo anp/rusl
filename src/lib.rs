@@ -1,5 +1,5 @@
 #![no_std]
-#![feature(lang_items, linkage)]
+#![feature(asm, lang_items, linkage)]
 
 #![allow(non_camel_case_types)]
 
