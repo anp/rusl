@@ -1,5 +1,5 @@
 use c_types::*;
-use platform::atomic::{a_fetch_add, a_inc};
+use atomic::{a_fetch_add, a_inc};
 use thread::{__wait, __wake};
 
 static mut LOCK: [c_int; 2] = [0, 0];

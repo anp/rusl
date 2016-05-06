@@ -1,3 +1,6 @@
+use core::mem::size_of;
+use core::usize;
+
 use c_types::*;
 
 #[no_mangle]

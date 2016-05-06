@@ -1,8 +1,9 @@
+pub mod pthread;
 pub mod vmlock;
 
 use c_types::*;
-use platform::atomic::{a_dec, a_inc, a_spin};
-use platform::errno::ENOSYS;
+use atomic::{a_dec, a_inc, a_spin};
+use errno::ENOSYS;
 
 pub const FUTEX_WAIT: c_int = 0;
 pub const FUTEX_WAKE: c_int = 1;
@@ -67,7 +68,7 @@ pub unsafe extern "C" fn __wait(address: *mut c_int,
     while *address == val {
         let first = syscall!(FUTEX, address, FUTEX_WAIT | private, val, 0);
 
-        if first as isize == -ENOSYS {
+        if first as c_int == -ENOSYS {
             syscall!(FUTEX, address, FUTEX_WAIT, val, 0);
         }
     }

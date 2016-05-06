@@ -32,6 +32,8 @@ pub type c_ulonglong = u64;
 pub type intmax_t = i64;
 pub type uintmax_t = u64;
 
+pub const INT_BYTES: usize = 4;
+pub const LONG_BYTES: usize = 8;
 pub const C_INT_MAX: i32 = i32::MAX;
 
 pub type size_t = usize;

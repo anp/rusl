@@ -1,7 +1,7 @@
 use core::u64;
 
 use c_types::*;
-use platform::{EINVAL, ENOSYS};
+use errno::{EINVAL, ENOSYS};
 use syscall_mgt::syscall_return;
 
 use time::timespec;
@@ -26,7 +26,7 @@ pub unsafe extern "C" fn __clock_gettime(clock: clockid_t, spec: &mut timespec) 
 
 #[no_mangle]
 pub unsafe extern "C" fn clock_gettime(clock: clockid_t, spec: &mut timespec) -> c_int {
-    let mut r = syscall!(CLOCK_GETTIME, clock, spec as *mut timespec) as isize;
+    let mut r = syscall!(CLOCK_GETTIME, clock, spec as *mut timespec) as c_int;
 
     if r == -ENOSYS {
         if clock == CLOCK_REALTIME {
