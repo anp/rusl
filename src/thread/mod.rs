@@ -42,7 +42,11 @@ pub unsafe extern "C" fn __wait(address: *mut c_int,
                                 val: c_int,
                                 private: c_int) {
 
-    let private = if private != 0 { FUTEX_PRIVATE } else { private };
+    let private = if private != 0 {
+        FUTEX_PRIVATE
+    } else {
+        private
+    };
 
     for _ in 0..100 {
         if waiters as usize != 0 || *waiters != 0 {
@@ -54,7 +58,9 @@ pub unsafe extern "C" fn __wait(address: *mut c_int,
         }
     }
 
-    if waiters as usize != 0 { a_inc(waiters); }
+    if waiters as usize != 0 {
+        a_inc(waiters);
+    }
 
     while *address == val {
         let first = syscall!(FUTEX, address, FUTEX_WAIT | private, val, 0);
@@ -64,5 +70,7 @@ pub unsafe extern "C" fn __wait(address: *mut c_int,
         }
     }
 
-    if waiters as usize != 0 { a_dec(waiters); }
+    if waiters as usize != 0 {
+        a_dec(waiters);
+    }
 }
