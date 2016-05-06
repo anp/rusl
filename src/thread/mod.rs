@@ -1,3 +1,5 @@
+pub mod vmlock;
+
 use c_types::*;
 use platform::atomic::{a_dec, a_inc, a_spin};
 use platform::errno::ENOSYS;
