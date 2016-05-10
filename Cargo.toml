@@ -11,6 +11,7 @@ crate-type = ["staticlib", "dylib"]
 lazy_static = { version = "0.2.1", features = ["spin_no_std"] }
 rlibc = "1.0.0"
 syscall = "0.2.1"
+va_list = "0.0.3"
 
 [profile.release]
 debug = true

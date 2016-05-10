@@ -1,5 +1,7 @@
 use core::isize;
 
+use va_list::VaList;
+
 use c_types::*;
 use errno::{set_errno, EINVAL, ENOMEM};
 use platform::mman::*;
@@ -35,6 +37,29 @@ pub unsafe extern "C" fn __mmap(start: *mut c_void,
     }
 
     syscall!(MMAP, start, len, prot, flags, fd, off) as *mut c_void
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn __mremap(old_address: *mut c_void,
+                                  old_len: size_t,
+                                  new_len: size_t,
+                                  flags: c_int,
+                                  mut args: VaList)
+                                  -> *mut c_void {
+
+    let mut new_address = 0 as *mut c_void;
+
+    if new_len >= isize::MAX as usize {
+        set_errno(ENOMEM);
+        return MAP_FAILED;
+    }
+
+    if flags & MREMAP_FIXED != 0 {
+        __vm_wait();
+        new_address = args.get::<usize>() as *mut c_void;
+    }
+
+    syscall!(MREMAP, old_address, old_len, new_len, flags, new_address) as *mut c_void
 }
 
 #[no_mangle]
@@ -85,4 +110,14 @@ pub unsafe extern "C" fn mmap64(start: *mut c_void,
                                 off: off_t)
                                 -> *mut c_void {
     __mmap(start, len, prot, flags, fd, off)
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn mremap(old_address: *mut c_void,
+                                old_len: size_t,
+                                new_len: size_t,
+                                flags: c_int,
+                                args: VaList)
+                                -> *mut c_void {
+    __mremap(old_address, old_len, new_len, flags, args)
 }

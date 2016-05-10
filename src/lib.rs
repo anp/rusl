@@ -1,11 +1,13 @@
 #![no_std]
 #![feature(asm, lang_items, linkage)]
+//#![needs_panic_runtime]
 
 #![allow(non_camel_case_types)]
 
 #[macro_use]
 extern crate lazy_static;
 extern crate syscall;
+extern crate va_list;
 
 #[macro_use]
 pub mod syscall_mgt;
@@ -65,16 +67,10 @@ pub mod signal {
     pub use platform::signal::*;
 }
 
-#[lang = "eh_personality"]
+/*#[lang = "eh_personality"]
 extern "C" fn eh_personality() {}
 
 #[lang = "panic_fmt"]
 fn panic_fmt() -> ! {
     loop {}
-}
-
-#[cfg(test)]
-mod test {
-    #[test]
-    fn it_works() {}
-}
+}*/
