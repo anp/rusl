@@ -5,13 +5,14 @@
 
 #[macro_use]
 extern crate lazy_static;
-#[macro_use]
 extern crate syscall;
+
+#[macro_use]
+pub mod syscall_mgt;
 
 pub mod malloc;
 pub mod mmap;
 pub mod string;
-pub mod syscall_mgt;
 pub mod thread;
 pub mod time;
 pub mod unistd;

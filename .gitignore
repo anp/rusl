@@ -4,5 +4,6 @@ Cargo.lock
 build
 *.a
 *.o
+*.lo
 libc-test/src/common/options.h
 rusl_failures
