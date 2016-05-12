@@ -47,17 +47,29 @@ pub unsafe extern "C" fn __mremap(old_address: *mut c_void,
                                   mut args: VaList)
                                   -> *mut c_void {
 
-    let mut new_address = 0 as *mut c_void;
+    let mut new_address = if flags & MREMAP_FIXED != 0 {
+        __vm_wait();
+        Some(args.get::<usize>())
+    } else {
+        None
+    };
+
+    mremap_helper(old_address, old_len, new_len, flags, new_address)
+}
+
+pub unsafe fn mremap_helper(old_address: *mut c_void,
+                            old_len: size_t,
+                            new_len: size_t,
+                            flags: c_int,
+                            new_address: Option<usize>)
+                            -> *mut c_void {
 
     if new_len >= isize::MAX as usize {
         set_errno(ENOMEM);
         return MAP_FAILED;
     }
 
-    if flags & MREMAP_FIXED != 0 {
-        __vm_wait();
-        new_address = args.get::<usize>() as *mut c_void;
-    }
+    let new_address = new_address.unwrap_or(0);
 
     syscall!(MREMAP, old_address, old_len, new_len, flags, new_address) as *mut c_void
 }

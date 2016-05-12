@@ -114,76 +114,7 @@ int pretrim(struct chunk *self, size_t n, int i, int j);
 void trim(struct chunk *self, size_t n);
 void *malloc(size_t n);
 void *__malloc0(size_t n);
-
-void *realloc(void *p, size_t n)
-{
-	struct chunk *self, *next;
-	size_t n0, n1;
-	void *new;
-
-	if (!p) return malloc(n);
-
-	if (adjust_size(&n) < 0) return 0;
-
-	self = MEM_TO_CHUNK(p);
-	n1 = n0 = CHUNK_SIZE(self);
-
-	if (IS_MMAPPED(self)) {
-		size_t extra = self->psize;
-		char *base = (char *)self - extra;
-		size_t oldlen = n0 + extra;
-		size_t newlen = n + extra;
-		/* Crash on realloc of freed chunk */
-		if (extra & 1) a_crash();
-		if (newlen < PAGE_SIZE && (new = malloc(n))) {
-			memcpy(new, p, n-OVERHEAD);
-			free(p);
-			return new;
-		}
-		newlen = (newlen + PAGE_SIZE-1) & -PAGE_SIZE;
-		if (oldlen == newlen) return p;
-		base = __mremap(base, oldlen, newlen, MREMAP_MAYMOVE);
-		if (base == (void *)-1)
-			return newlen < oldlen ? p : 0;
-		self = (void *)(base + extra);
-		self->csize = newlen - extra;
-		return CHUNK_TO_MEM(self);
-	}
-
-	next = NEXT_CHUNK(self);
-
-	/* Crash on corrupted footer (likely from buffer overflow) */
-	if (next->psize != self->csize) a_crash();
-
-	/* Merge adjacent chunks if we need more space. This is not
-	 * a waste of time even if we fail to get enough space, because our
-	 * subsequent call to free would otherwise have to do the merge. */
-	if (n > n1 && alloc_fwd(next)) {
-		n1 += CHUNK_SIZE(next);
-		next = NEXT_CHUNK(next);
-	}
-	/* FIXME: find what's wrong here and reenable it..? */
-	if (0 && n > n1 && alloc_rev(self)) {
-		self = PREV_CHUNK(self);
-		n1 += CHUNK_SIZE(self);
-	}
-	self->csize = n1 | C_INUSE;
-	next->psize = n1 | C_INUSE;
-
-	/* If we got enough space, split off the excess and return */
-	if (n <= n1) {
-		//memmove(CHUNK_TO_MEM(self), p, n0-OVERHEAD);
-		trim(self, n);
-		return CHUNK_TO_MEM(self);
-	}
-
-	/* As a last resort, allocate a new chunk and copy to it. */
-	new = malloc(n-OVERHEAD);
-	if (!new) return 0;
-	memcpy(new, p, n0-OVERHEAD);
-	free(CHUNK_TO_MEM(self));
-	return new;
-}
+void *realloc(void *p, size_t n);
 
 void free(void *p)
 {
