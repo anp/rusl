@@ -84,7 +84,7 @@ void unlock_bin(int i)
 	unlock(mal.bins[i].lock);
 }
 
-static int first_set(uint64_t x)
+int first_set(uint64_t x)
 {
 	return a_ctz_64(x);
 }
@@ -97,7 +97,7 @@ int bin_index(size_t x)
 	return ((union { float v; uint32_t r; }){(int)x}.r>>21) - 496;
 }
 
-static int bin_index_up(size_t x)
+int bin_index_up(size_t x)
 {
 	x = x / SIZE_ALIGN - 1;
 	if (x <= 32) return x;
@@ -112,66 +112,8 @@ int alloc_fwd(struct chunk *c);
 int alloc_rev(struct chunk *c);
 int pretrim(struct chunk *self, size_t n, int i, int j);
 void trim(struct chunk *self, size_t n);
-
-void *malloc(size_t n)
-{
-	struct chunk *c;
-	int i, j;
-
-	if (adjust_size(&n) < 0) return 0;
-
-	if (n > MMAP_THRESHOLD) {
-		size_t len = n + OVERHEAD + PAGE_SIZE - 1 & -PAGE_SIZE;
-		char *base = __mmap(0, len, PROT_READ|PROT_WRITE,
-			MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
-		if (base == (void *)-1) return 0;
-		c = (void *)(base + SIZE_ALIGN - OVERHEAD);
-		c->csize = len - (SIZE_ALIGN - OVERHEAD);
-		c->psize = SIZE_ALIGN - OVERHEAD;
-		return CHUNK_TO_MEM(c);
-	}
-
-	i = bin_index_up(n);
-	for (;;) {
-		uint64_t mask = mal.binmap & -(1ULL<<i);
-		if (!mask) {
-			c = expand_heap(n);
-			if (!c) return 0;
-			if (alloc_rev(c)) {
-				struct chunk *x = c;
-				c = PREV_CHUNK(c);
-				NEXT_CHUNK(x)->psize = c->csize =
-					x->csize + CHUNK_SIZE(c);
-			}
-			break;
-		}
-		j = first_set(mask);
-		lock_bin(j);
-		c = mal.bins[j].head;
-		if (c != BIN_TO_CHUNK(j)) {
-			if (!pretrim(c, n, i, j)) unbin(c, j);
-			unlock_bin(j);
-			break;
-		}
-		unlock_bin(j);
-	}
-
-	/* Now patch up in case we over-allocated */
-	trim(c, n);
-
-	return CHUNK_TO_MEM(c);
-}
-
-void *__malloc0(size_t n)
-{
-	void *p = malloc(n);
-	if (p && !IS_MMAPPED(MEM_TO_CHUNK(p))) {
-		size_t *z;
-		n = (n + sizeof *z - 1)/sizeof *z;
-		for (z=p; n; n--, z++) if (*z) *z=0;
-	}
-	return p;
-}
+void *malloc(size_t n);
+void *__malloc0(size_t n);
 
 void *realloc(void *p, size_t n)
 {
