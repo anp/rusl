@@ -29,7 +29,7 @@ struct bin {
 	struct chunk *tail;
 };
 
-static struct {
+struct {
 	volatile uint64_t binmap;
 	struct bin bins[64];
 	volatile int free_lock[2];
@@ -72,14 +72,14 @@ static inline void unlock(volatile int *lk)
 	}
 }
 
-static inline void lock_bin(int i)
+void lock_bin(int i)
 {
 	lock(mal.bins[i].lock);
 	if (!mal.bins[i].head)
 		mal.bins[i].head = mal.bins[i].tail = BIN_TO_CHUNK(i);
 }
 
-static inline void unlock_bin(int i)
+void unlock_bin(int i)
 {
 	unlock(mal.bins[i].lock);
 }
@@ -89,7 +89,7 @@ static int first_set(uint64_t x)
 	return a_ctz_64(x);
 }
 
-static int bin_index(size_t x)
+int bin_index(size_t x)
 {
 	x = x / SIZE_ALIGN - 1;
 	if (x <= 32) return x;
@@ -105,164 +105,13 @@ static int bin_index_up(size_t x)
 }
 
 void *__expand_heap(size_t *);
-
-static struct chunk *expand_heap(size_t n)
-{
-	static int heap_lock[2];
-	static void *end;
-	void *p;
-	struct chunk *w;
-
-	/* The argument n already accounts for the caller's chunk
-	 * overhead needs, but if the heap can't be extended in-place,
-	 * we need room for an extra zero-sized sentinel chunk. */
-	n += SIZE_ALIGN;
-
-	lock(heap_lock);
-
-	p = __expand_heap(&n);
-	if (!p) {
-		unlock(heap_lock);
-		return 0;
-	}
-
-	/* If not just expanding existing space, we need to make a
-	 * new sentinel chunk below the allocated space. */
-	if (p != end) {
-		/* Valid/safe because of the prologue increment. */
-		n -= SIZE_ALIGN;
-		p = (char *)p + SIZE_ALIGN;
-		w = MEM_TO_CHUNK(p);
-		w->psize = 0 | C_INUSE;
-	}
-
-	/* Record new heap end and fill in footer. */
-	end = (char *)p + n;
-	w = MEM_TO_CHUNK(end);
-	w->psize = n | C_INUSE;
-	w->csize = 0 | C_INUSE;
-
-	/* Fill in header, which may be new or may be replacing a
-	 * zero-size sentinel header at the old end-of-heap. */
-	w = MEM_TO_CHUNK(p);
-	w->csize = n | C_INUSE;
-
-	unlock(heap_lock);
-
-	return w;
-}
-
-static int adjust_size(size_t *n)
-{
-	/* Result of pointer difference must fit in ptrdiff_t. */
-	if (*n-1 > PTRDIFF_MAX - SIZE_ALIGN - PAGE_SIZE) {
-		if (*n) {
-			errno = ENOMEM;
-			return -1;
-		} else {
-			*n = SIZE_ALIGN;
-			return 0;
-		}
-	}
-	*n = (*n + OVERHEAD + SIZE_ALIGN - 1) & SIZE_MASK;
-	return 0;
-}
-
-static void unbin(struct chunk *c, int i)
-{
-	if (c->prev == c->next)
-		a_and_64(&mal.binmap, ~(1ULL<<i));
-	c->prev->next = c->next;
-	c->next->prev = c->prev;
-	c->csize |= C_INUSE;
-	NEXT_CHUNK(c)->psize |= C_INUSE;
-}
-
-static int alloc_fwd(struct chunk *c)
-{
-	int i;
-	size_t k;
-	while (!((k=c->csize) & C_INUSE)) {
-		i = bin_index(k);
-		lock_bin(i);
-		if (c->csize == k) {
-			unbin(c, i);
-			unlock_bin(i);
-			return 1;
-		}
-		unlock_bin(i);
-	}
-	return 0;
-}
-
-static int alloc_rev(struct chunk *c)
-{
-	int i;
-	size_t k;
-	while (!((k=c->psize) & C_INUSE)) {
-		i = bin_index(k);
-		lock_bin(i);
-		if (c->psize == k) {
-			unbin(PREV_CHUNK(c), i);
-			unlock_bin(i);
-			return 1;
-		}
-		unlock_bin(i);
-	}
-	return 0;
-}
-
-
-/* pretrim - trims a chunk _prior_ to removing it from its bin.
- * Must be called with i as the ideal bin for size n, j the bin
- * for the _free_ chunk self, and bin j locked. */
-static int pretrim(struct chunk *self, size_t n, int i, int j)
-{
-	size_t n1;
-	struct chunk *next, *split;
-
-	/* We cannot pretrim if it would require re-binning. */
-	if (j < 40) return 0;
-	if (j < i+3) {
-		if (j != 63) return 0;
-		n1 = CHUNK_SIZE(self);
-		if (n1-n <= MMAP_THRESHOLD) return 0;
-	} else {
-		n1 = CHUNK_SIZE(self);
-	}
-	if (bin_index(n1-n) != j) return 0;
-
-	next = NEXT_CHUNK(self);
-	split = (void *)((char *)self + n);
-
-	split->prev = self->prev;
-	split->next = self->next;
-	split->prev->next = split;
-	split->next->prev = split;
-	split->psize = n | C_INUSE;
-	split->csize = n1-n;
-	next->psize = n1-n;
-	self->csize = n | C_INUSE;
-	return 1;
-}
-
-static void trim(struct chunk *self, size_t n)
-{
-	size_t n1 = CHUNK_SIZE(self);
-	struct chunk *next, *split;
-
-	if (n >= n1 - DONTCARE) return;
-
-	next = NEXT_CHUNK(self);
-	split = (void *)((char *)self + n);
-
-	split->psize = n | C_INUSE;
-	split->csize = n1-n | C_INUSE;
-	next->psize = n1-n | C_INUSE;
-	self->csize = n | C_INUSE;
-
-	free(CHUNK_TO_MEM(split));
-}
+struct chunk *expand_heap(size_t n);
+int adjust_size(size_t *n);
+void unbin(struct chunk *c, int i);
+int alloc_fwd(struct chunk *c);
+int alloc_rev(struct chunk *c);
+int pretrim(struct chunk *self, size_t n, int i, int j);
+void trim(struct chunk *self, size_t n);
 
 void *malloc(size_t n)
 {

@@ -1,11 +1,12 @@
 #![no_std]
-#![feature(asm, lang_items, linkage)]
+#![feature(asm, const_fn, lang_items, linkage)]
 //#![needs_panic_runtime]
 
 #![allow(non_camel_case_types)]
 
 #[macro_use]
 extern crate lazy_static;
+extern crate spin;
 extern crate syscall;
 extern crate va_list;
 
