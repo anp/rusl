@@ -47,7 +47,7 @@ pub unsafe extern "C" fn __mremap(old_address: *mut c_void,
                                   mut args: VaList)
                                   -> *mut c_void {
 
-    let mut new_address = if flags & MREMAP_FIXED != 0 {
+    let new_address = if flags & MREMAP_FIXED != 0 {
         __vm_wait();
         Some(args.get::<usize>())
     } else {

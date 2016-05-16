@@ -6,9 +6,10 @@ use c_types::*;
 use errno::{set_errno, ENOMEM};
 use malloc::expand_heap::__expand_heap;
 use mmap::{__mmap, mremap_helper};
-use platform::atomic::{a_and_64, a_crash};
+use platform::atomic::{a_and_64, a_crash, a_ctz_64, a_store, a_swap};
 use platform::malloc::*;
 use platform::mman::*;
+use thread::{__wait, __wake};
 
 pub const MMAP_THRESHOLD: usize = 0x1c00 * SIZE_ALIGN;
 pub const DONTCARE: usize = 16;
@@ -38,11 +39,6 @@ pub struct mal {
 
 extern "C" {
     static mut mal: mal;
-    fn lock(lk: *mut c_int);
-    fn unlock(lk: *mut c_int);
-    fn lock_bin(i: c_int);
-    fn unlock_bin(i: c_int);
-    fn first_set(x: u64) -> c_int;
     fn bin_index(s: usize) -> c_int;
     fn bin_index_up(x: usize) -> c_int;
 
@@ -96,7 +92,7 @@ pub unsafe extern "C" fn malloc(mut n: usize) -> *mut c_void {
             break;
         }
 
-        let j = first_set(mask);
+        let j = a_ctz_64(mask) as c_int;
         lock_bin(j);
         c = mal.bins[j as usize].head;
 
@@ -210,7 +206,8 @@ pub unsafe extern "C" fn realloc(p: *mut c_void, mut n: usize) -> *mut c_void {
 
     // As a last resort, allocate a new chunk and copy to it.
     let new = malloc(n - OVERHEAD);
-    if new == 0 as *mut c_void {
+    if new.is_null() {
+        // } == 0 as *mut c_void {
         return 0 as *mut c_void;
     }
 
@@ -402,7 +399,9 @@ unsafe fn chunk_to_mem(c: *mut chunk) -> *mut c_void {
     (c as *mut u8).offset(OVERHEAD as isize) as *mut c_void
 }
 
-unsafe fn bin_to_chunk(i: usize) -> *mut chunk { mem_to_chunk(mal.bins[i].head as *mut c_void) }
+unsafe fn bin_to_chunk(i: usize) -> *mut chunk {
+    mem_to_chunk(((&mut mal.bins[i].head) as *mut *mut chunk as usize) as *mut c_void)
+}
 
 unsafe fn chunk_size(c: *mut chunk) -> usize { (*c).csize & ((-2i64) as usize) }
 
@@ -417,3 +416,34 @@ unsafe fn next_chunk(c: *mut chunk) -> *mut chunk {
 }
 
 unsafe fn is_mmapped(c: *mut chunk) -> bool { ((*c).csize & 1) == 0 }
+
+#[no_mangle]
+pub unsafe extern "C" fn lock(lock: *mut c_int) {
+    while a_swap(lock, 1) != 0 {
+        __wait(lock, lock.offset(1), 1, 1);
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn unlock(lock: *mut c_int) {
+    if *lock != 0 {
+        a_store(lock, 0);
+        if *lock.offset(1) != 0 {
+            __wake(lock as *mut c_void, 1, 1);
+        }
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn unlock_bin(i: c_int) { unlock(&mut mal.bins[i as usize].lock[0]); }
+
+#[no_mangle]
+pub unsafe extern "C" fn lock_bin(i: c_int) {
+    let i = i as usize;
+    lock(&mut mal.bins[i].lock[0]);
+
+    if mal.bins[i].head as usize == 0 {
+        mal.bins[i].tail = bin_to_chunk(i);
+        mal.bins[i].head = mal.bins[i].tail;
+    }
+}
