@@ -1,4 +1,5 @@
 use core::num::Wrapping;
+use core::ptr;
 use core::usize;
 
 use c_types::*;
@@ -61,7 +62,7 @@ pub unsafe extern "C" fn __expand_heap(pn: *mut size_t) -> *mut c_void {
 
     if n > ((usize::MAX / 2) - PAGE_SIZE as usize) {
         set_errno(ENOMEM);
-        return 0 as *mut c_void;
+        return ptr::null_mut();
     }
 
     n += (-Wrapping(n)).0 & (PAGE_SIZE as usize - 1);
@@ -84,7 +85,7 @@ pub unsafe extern "C" fn __expand_heap(pn: *mut size_t) -> *mut c_void {
         n = min;
     }
 
-    let area = __mmap(0 as *mut c_void,
+    let area = __mmap(ptr::null_mut(),
                       n,
                       PROT_READ | PROT_READ,
                       MAP_PRIVATE | MAP_ANONYMOUS,
@@ -92,7 +93,7 @@ pub unsafe extern "C" fn __expand_heap(pn: *mut size_t) -> *mut c_void {
                       0);
 
     if area == MAP_FAILED {
-        return 0 as *mut c_void;
+        return ptr::null_mut();
     }
 
     *pn = n;

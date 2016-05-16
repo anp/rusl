@@ -52,7 +52,7 @@ pub unsafe extern "C" fn __wait(address: *mut c_int,
     };
 
     for _ in 0..100 {
-        if waiters as usize != 0 || *waiters != 0 {
+        if !waiters.is_null() || *waiters != 0 {
             if *address == val {
                 a_spin();
             } else {
@@ -61,7 +61,7 @@ pub unsafe extern "C" fn __wait(address: *mut c_int,
         }
     }
 
-    if waiters as usize != 0 {
+    if !waiters.is_null() {
         a_inc(waiters);
     }
 
@@ -73,7 +73,7 @@ pub unsafe extern "C" fn __wait(address: *mut c_int,
         }
     }
 
-    if waiters as usize != 0 {
+    if !waiters.is_null() {
         a_dec(waiters);
     }
 }

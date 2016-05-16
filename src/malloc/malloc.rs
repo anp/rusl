@@ -1,4 +1,5 @@
 use core::isize;
+use core::ptr;
 
 use spin::Mutex;
 
@@ -50,13 +51,13 @@ extern "C" {
 pub unsafe extern "C" fn malloc(mut n: usize) -> *mut c_void {
     let mut c: *mut chunk;
 
-    if adjust_size(&mut n as *mut usize) < 0 {
-        return 0 as *mut c_void;
+    if adjust_size(&mut n) < 0 {
+        return ptr::null_mut();
     }
 
     if n > MMAP_THRESHOLD {
         let len = n + OVERHEAD + PAGE_SIZE as usize - 1 & (-PAGE_SIZE) as usize;
-        let base = __mmap(0 as *mut c_void,
+        let base = __mmap(ptr::null_mut(),
                           len,
                           PROT_READ | PROT_WRITE,
                           MAP_PRIVATE | MAP_ANONYMOUS,
@@ -64,7 +65,7 @@ pub unsafe extern "C" fn malloc(mut n: usize) -> *mut c_void {
                           0) as *mut u8;
 
         if base == ((-1isize) as usize) as *mut u8 {
-            return 0 as *mut c_void;
+            return ptr::null_mut();
         }
 
         c = base.offset((SIZE_ALIGN - OVERHEAD) as isize) as *mut chunk;
@@ -78,8 +79,8 @@ pub unsafe extern "C" fn malloc(mut n: usize) -> *mut c_void {
         let mask = mal.binmap & (-((1usize << i) as isize)) as u64;
         if mask == 0 {
             c = expand_heap(n);
-            if c == 0 as *mut chunk {
-                return 0 as *mut c_void;
+            if c.is_null() {
+                return ptr::null_mut();
             }
             if alloc_rev(c) != 0 {
                 let x = c;
@@ -116,7 +117,7 @@ pub unsafe extern "C" fn malloc(mut n: usize) -> *mut c_void {
 pub unsafe extern "C" fn __malloc0(n: usize) -> *mut c_void {
     let p = malloc(n);
 
-    if p as usize != 0 && !is_mmapped(mem_to_chunk(p)) {
+    if !p.is_null() && !is_mmapped(mem_to_chunk(p)) {
         for i in 0..n {
             *(p as *mut u8).offset(i as isize) = 0;
         }
@@ -128,12 +129,12 @@ pub unsafe extern "C" fn __malloc0(n: usize) -> *mut c_void {
 #[no_mangle]
 pub unsafe extern "C" fn realloc(p: *mut c_void, mut n: usize) -> *mut c_void {
 
-    if p as usize == 0 {
+    if p.is_null() {
         return malloc(n);
     }
 
     if adjust_size(&mut n) < 0 {
-        return 0 as *mut c_void;
+        return ptr::null_mut();
     }
 
     let s = mem_to_chunk(p);
@@ -151,7 +152,7 @@ pub unsafe extern "C" fn realloc(p: *mut c_void, mut n: usize) -> *mut c_void {
         }
 
         let new = malloc(n);
-        if new_len < PAGE_SIZE as usize && new != 0 as *mut c_void {
+        if new_len < PAGE_SIZE as usize && !new.is_null() {
             memcpy(new, p, n - OVERHEAD);
             free(p);
             return new;
@@ -169,7 +170,7 @@ pub unsafe extern "C" fn realloc(p: *mut c_void, mut n: usize) -> *mut c_void {
             return if new_len < old_len {
                 p
             } else {
-                0 as *mut c_void
+                ptr::null_mut()
             };
         }
 
@@ -207,8 +208,7 @@ pub unsafe extern "C" fn realloc(p: *mut c_void, mut n: usize) -> *mut c_void {
     // As a last resort, allocate a new chunk and copy to it.
     let new = malloc(n - OVERHEAD);
     if new.is_null() {
-        // } == 0 as *mut c_void {
-        return 0 as *mut c_void;
+        return ptr::null_mut();
     }
 
     memcpy(new, p, n0 - OVERHEAD);
@@ -349,7 +349,7 @@ pub unsafe extern "C" fn trim(s: *mut chunk, n: usize) {
 
 #[no_mangle]
 pub unsafe extern "C" fn expand_heap(mut n: usize) -> *mut chunk {
-    static mut heap_lock: Mutex<*mut c_void> = Mutex::new(0 as *mut c_void);
+    static mut heap_lock: Mutex<*mut c_void> = Mutex::new(ptr::null_mut());
 
     let mut p: *mut c_void;
     let mut w: *mut chunk;
@@ -363,8 +363,8 @@ pub unsafe extern "C" fn expand_heap(mut n: usize) -> *mut chunk {
 
     p = __expand_heap(&mut n as *mut usize);
 
-    if p as usize == 0 {
-        return 0 as *mut chunk;
+    if p.is_null() {
+        return ptr::null_mut();
     }
 
     // If not just expanding existing space, we need to make a
@@ -442,7 +442,7 @@ pub unsafe extern "C" fn lock_bin(i: c_int) {
     let i = i as usize;
     lock(&mut mal.bins[i].lock[0]);
 
-    if mal.bins[i].head as usize == 0 {
+    if mal.bins[i].head.is_null() {
         mal.bins[i].tail = bin_to_chunk(i);
         mal.bins[i].head = mal.bins[i].tail;
     }

@@ -2,7 +2,6 @@ use core::u64;
 
 use c_types::*;
 use errno::{EINVAL, ENOSYS};
-use syscall_mgt::syscall_return;
 
 use time::timespec;
 
@@ -37,7 +36,7 @@ pub unsafe extern "C" fn clock_gettime(clock: clockid_t, spec: &mut timespec) ->
         r = -EINVAL;
     }
 
-    syscall_return(r as usize) as c_int
+    r
 }
 
 #[no_mangle]
