@@ -41,8 +41,8 @@ pub struct timeval {
 
 #[repr(C)]
 pub struct itimerval {
-    pub it_interval: timeval,
-    pub it_value: timeval,
+	pub it_interval: timeval,
+	pub it_value: timeval,
 }
 
 #[repr(C)]
