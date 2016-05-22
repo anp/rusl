@@ -64,13 +64,7 @@ void lock_bin(int i);
 void unlock_bin(int i);
 
 int bin_index(size_t x);
-
-int bin_index_up(size_t x)
-{
-	x = x / SIZE_ALIGN - 1;
-	if (x <= 32) return x;
-	return ((union { float v; uint32_t r; }){(int)x}.r+0x1fffff>>21) - 496;
-}
+int bin_index_up(size_t x);
 
 void *__expand_heap(size_t *);
 struct chunk *expand_heap(size_t n);

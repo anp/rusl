@@ -41,7 +41,7 @@ pub struct mal {
 
 extern "C" {
     static mut mal: mal;
-    fn bin_index_up(x: usize) -> c_int;
+    // fn bin_index_up(x: usize) -> c_int;
 
     fn free(p: *mut c_void);
     fn memcpy(dest: *mut c_void, src: *const c_void, n: usize) -> *mut u8;
@@ -450,7 +450,7 @@ pub unsafe extern "C" fn lock_bin(i: c_int) {
 
 #[no_mangle]
 pub unsafe extern "C" fn bin_index(x: usize) -> i32 {
-    let x = (x / 32) - 1;
+    let x = (x / SIZE_ALIGN) - 1;
 
     if x <= 32 {
         x as c_int
@@ -458,5 +458,16 @@ pub unsafe extern "C" fn bin_index(x: usize) -> i32 {
         63
     } else {
         ((transmute::<c_float, u32>((x as c_int) as c_float) >> 21) - 496) as c_int
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn bin_index_up(x: usize) -> c_int {
+    let x = (x / SIZE_ALIGN) - 1;
+
+    if x <= 32 {
+        x as c_int
+    } else {
+        ((transmute::<c_float, u32>((x as c_int) as c_float) + 0x1fffff >> 21) - 496) as c_int
     }
 }
