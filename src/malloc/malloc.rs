@@ -1,4 +1,5 @@
 use core::isize;
+use core::mem::transmute;
 use core::ptr;
 
 use spin::Mutex;
@@ -40,7 +41,6 @@ pub struct mal {
 
 extern "C" {
     static mut mal: mal;
-    fn bin_index(s: usize) -> c_int;
     fn bin_index_up(x: usize) -> c_int;
 
     fn free(p: *mut c_void);
@@ -445,5 +445,18 @@ pub unsafe extern "C" fn lock_bin(i: c_int) {
     if mal.bins[i].head.is_null() {
         mal.bins[i].tail = bin_to_chunk(i);
         mal.bins[i].head = mal.bins[i].tail;
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn bin_index(x: usize) -> i32 {
+    let x = (x / 32) - 1;
+
+    if x <= 32 {
+        x as c_int
+    } else if x > 0x1c00 {
+        63
+    } else {
+        ((transmute::<c_float, u32>((x as c_int) as c_float) >> 21) - 496) as c_int
     }
 }

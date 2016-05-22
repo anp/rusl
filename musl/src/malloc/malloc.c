@@ -63,13 +63,7 @@ void unlock(volatile int *lk);
 void lock_bin(int i);
 void unlock_bin(int i);
 
-int bin_index(size_t x)
-{
-	x = x / SIZE_ALIGN - 1;
-	if (x <= 32) return x;
-	if (x > 0x1c00) return 63;
-	return ((union { float v; uint32_t r; }){(int)x}.r>>21) - 496;
-}
+int bin_index(size_t x);
 
 int bin_index_up(size_t x)
 {
