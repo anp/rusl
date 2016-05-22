@@ -1,4 +1,4 @@
-use core::intrinsics::transmute;
+use core::mem::transmute;
 
 use c_types::*;
 use errno::set_errno;
