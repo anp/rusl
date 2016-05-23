@@ -7,8 +7,8 @@ use spin::Mutex;
 use c_types::*;
 use errno::{set_errno, ENOMEM};
 use malloc::expand_heap::__expand_heap;
-use mmap::{__mmap, mremap_helper};
-use platform::atomic::{a_and_64, a_crash, a_ctz_64, a_store, a_swap};
+use mmap::{__madvise, __mmap, __munmap, mremap_helper};
+use platform::atomic::{a_and_64, a_crash, a_ctz_64, a_or_64, a_store, a_swap};
 use platform::malloc::*;
 use platform::mman::*;
 use thread::{__wait, __wake};
@@ -26,6 +26,7 @@ pub struct chunk {
 }
 
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct bin {
     lock: [c_int; 2],
     head: *mut chunk,
@@ -39,11 +40,17 @@ pub struct mal {
     free_lock: [c_int; 2],
 }
 
-extern "C" {
-    static mut mal: mal;
-    // fn bin_index_up(x: usize) -> c_int;
+static mut mal: mal = mal {
+    binmap: 0,
+    bins: [bin {
+        lock: [0; 2],
+        head: ptr::null::<chunk>() as *mut chunk,
+        tail: ptr::null::<chunk>() as *mut chunk
+    }; 64],
+    free_lock: [0; 2],
+};
 
-    fn free(p: *mut c_void);
+extern "C" {
     fn memcpy(dest: *mut c_void, src: *const c_void, n: usize) -> *mut u8;
 }
 
@@ -82,7 +89,7 @@ pub unsafe extern "C" fn malloc(mut n: usize) -> *mut c_void {
             if c.is_null() {
                 return ptr::null_mut();
             }
-            if alloc_rev(c) != 0 {
+            if alloc_rev(c) {
                 let x = c;
                 c = previous_chunk(c);
 
@@ -124,6 +131,104 @@ pub unsafe extern "C" fn __malloc0(n: usize) -> *mut c_void {
     }
 
     p
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn free(p: *mut c_void) {
+
+    let mut s = mem_to_chunk(p);
+    let mut next: *mut chunk;
+    let mut final_size: usize;
+    let new_size: usize;
+    let mut size: usize;
+
+    let mut reclaim = false;
+    let mut i: c_int;
+
+    if p.is_null() {
+        return;
+    }
+
+    if is_mmapped(s) {
+        let extra = (*s).psize as isize;
+        let base = (s as *mut u8).offset(-extra);
+        let len = chunk_size(s) + extra as usize;
+
+        // crash on double free
+        if extra & 1 != 0 {
+            a_crash();
+        }
+        __munmap(base as *mut c_void, len);
+        return;
+    }
+
+    new_size = chunk_size(s);
+    final_size = new_size;
+    next = next_chunk(s);
+
+    // crash on corrupted footer (likely from buffer overflow)
+    if (*next).psize != (*s).csize {
+        a_crash();
+    }
+
+    loop {
+        if (*s).psize & (*next).csize & 1 != 0 {
+            (*s).csize = final_size | 1;
+            (*next).psize = final_size | 1;
+
+            i = bin_index(final_size);
+            lock_bin(i);
+            lock(&mut mal.free_lock[0]);
+
+            if (*s).psize & (*next).csize & 1 != 0 {
+                break;
+            }
+
+            unlock(&mut mal.free_lock[0]);
+            unlock_bin(i);
+        }
+
+        if alloc_rev(s) {
+            s = previous_chunk(s);
+            size = chunk_size(s);
+            final_size += size;
+
+            if new_size + size > RECLAIM && (new_size + size ^ size) > size {
+                reclaim = true;
+            }
+        }
+
+        if alloc_fwd(next) {
+            size = chunk_size(next);
+            final_size += size;
+            if new_size + size > RECLAIM && (new_size + size ^ size) > size {
+                reclaim = true;
+            }
+            next = next_chunk(next);
+        }
+    }
+
+    if (mal.binmap & 1u64 << i) == 0 {
+        a_or_64(&mut mal.binmap, 1u64 << i);
+    }
+
+    (*s).csize = final_size;
+    (*next).psize = final_size;
+    unlock(&mut mal.free_lock[0]);
+
+    (*s).next = bin_to_chunk(i as usize);
+    (*s).prev = mal.bins[i as usize].tail;
+    (*(*s).next).prev = s;
+    (*(*s).prev).next = s;
+
+    // replace middle of large chunks with fresh zero pages
+    if reclaim {
+        let a = s as usize + SIZE_ALIGN + PAGE_SIZE as usize - 1 & (-PAGE_SIZE) as usize;
+        let b = next as usize - SIZE_ALIGN & (-PAGE_SIZE) as usize;
+        __madvise(a as *mut c_void, b - a, MADV_DONTNEED);
+    }
+
+    unlock_bin(i);
 }
 
 #[no_mangle]
@@ -191,7 +296,7 @@ pub unsafe extern "C" fn realloc(p: *mut c_void, mut n: usize) -> *mut c_void {
     // a waste of time even if we fail to get enough space, because our
     // subsequent call to free would otherwise have to do the merge.
     let mut n1 = n0;
-    if n > n1 && alloc_fwd(next) != 0 {
+    if n > n1 && alloc_fwd(next) {
         n1 += chunk_size(next);
         next = next_chunk(next);
     }
@@ -247,7 +352,7 @@ pub unsafe extern "C" fn unbin(c: *mut chunk, i: c_int) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn alloc_fwd(c: *mut chunk) -> c_int {
+pub unsafe extern "C" fn alloc_fwd(c: *mut chunk) -> bool {
     let mut i: c_int;
     let mut k: usize;
 
@@ -260,16 +365,16 @@ pub unsafe extern "C" fn alloc_fwd(c: *mut chunk) -> c_int {
         if (*c).csize == k {
             unbin(c, i);
             unlock_bin(i);
-            return 1;
+            return true;
         }
         unlock_bin(i);
     }
 
-    0
+    false
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn alloc_rev(c: *mut chunk) -> c_int {
+pub unsafe extern "C" fn alloc_rev(c: *mut chunk) -> bool {
     let mut i: c_int;
     let mut k: usize;
 
@@ -282,11 +387,11 @@ pub unsafe extern "C" fn alloc_rev(c: *mut chunk) -> c_int {
         if (*c).psize == k {
             unbin(previous_chunk(c), i);
             unlock_bin(i);
-            return 1;
+            return true;
         }
         unlock_bin(i);
     }
-    0
+    false
 }
 
 // pretrim - trims a chunk _prior_ to removing it from its bin.
