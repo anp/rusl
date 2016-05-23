@@ -156,8 +156,8 @@ impl Heap {
                 }
             }
 
-            if (HEAP.binmap & 1u64 << i) == 0 {
-                a_or_64(&mut HEAP.binmap, 1u64 << i);
+            if (self.binmap & 1u64 << i) == 0 {
+                a_or_64(&mut self.binmap, 1u64 << i);
             }
 
             (*s).csize = final_size;
@@ -165,7 +165,7 @@ impl Heap {
         }
 
         (*s).next = bin_to_chunk(i as usize);
-        (*s).prev = HEAP.bins[i as usize].tail;
+        (*s).prev = self.bins[i as usize].tail;
         (*(*s).next).prev = s;
         (*(*s).prev).next = s;
 
