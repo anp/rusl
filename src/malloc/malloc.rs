@@ -17,7 +17,8 @@ pub const MMAP_THRESHOLD: usize = 0x1c00 * SIZE_ALIGN;
 pub const DONTCARE: usize = 16;
 pub const RECLAIM: usize = 163_840;
 
-#[repr(C)]
+static mut HEAP: Heap = Heap::new();
+
 pub struct Chunk {
     psize: usize,
     csize: usize,
@@ -25,30 +26,159 @@ pub struct Chunk {
     prev: *mut Chunk,
 }
 
-#[repr(C)]
-#[derive(Copy, Clone)]
 pub struct Bin {
     lock: [c_int; 2],
     head: *mut Chunk,
     tail: *mut Chunk,
 }
 
-#[repr(C)]
 pub struct Heap {
     binmap: u64,
     bins: [Bin; 64],
-    free_lock: [c_int; 2],
 }
 
-static mut heap: Heap = Heap {
-    binmap: 0,
-    bins: [Bin {
-        lock: [0; 2],
-        head: ptr::null::<Chunk>() as *mut Chunk,
-        tail: ptr::null::<Chunk>() as *mut Chunk,
-    }; 64],
-    free_lock: [0; 2],
-};
+impl Bin {
+    const fn new() -> Self {
+        Bin {
+            lock: [0; 2],
+            head: ptr::null::<Chunk>() as *mut Chunk,
+            tail: ptr::null::<Chunk>() as *mut Chunk,
+        }
+    }
+}
+
+macro_rules! array {
+    (@accum (0, $($_es:expr),*) -> ($($body:tt)*))
+        => {array!(@as_expr [$($body)*])};
+    (@accum (1, $($es:expr),*) -> ($($body:tt)*))
+        => {array!(@accum (0, $($es),*) -> ($($body)* $($es,)*))};
+    (@accum (2, $($es:expr),*) -> ($($body:tt)*))
+        => {array!(@accum (0, $($es),*) -> ($($body)* $($es,)* $($es,)*))};
+    (@accum (4, $($es:expr),*) -> ($($body:tt)*))
+        => {array!(@accum (2, $($es,)* $($es),*) -> ($($body)*))};
+    (@accum (8, $($es:expr),*) -> ($($body:tt)*))
+        => {array!(@accum (4, $($es,)* $($es),*) -> ($($body)*))};
+    (@accum (16, $($es:expr),*) -> ($($body:tt)*))
+        => {array!(@accum (8, $($es,)* $($es),*) -> ($($body)*))};
+    (@accum (32, $($es:expr),*) -> ($($body:tt)*))
+        => {array!(@accum (16, $($es,)* $($es),*) -> ($($body)*))};
+    (@accum (64, $($es:expr),*) -> ($($body:tt)*))
+        => {array!(@accum (32, $($es,)* $($es),*) -> ($($body)*))};
+
+    (@as_expr $e:expr) => {$e};
+
+    [$e:expr; $n:tt] => { array!(@accum ($n, $e) -> ()) };
+}
+
+
+impl Heap {
+    const fn new() -> Self {
+        Heap {
+            binmap: 0,
+            bins: array![Bin::new(); 64],
+        }
+    }
+
+    pub unsafe fn free_ptr(&mut self, ptr: *mut c_void) {
+        static FREE_LOCK: Mutex<()> = Mutex::new(());
+
+        if ptr.is_null() {
+            return;
+        }
+
+        let mut s = mem_to_chunk(ptr);
+        let mut next: *mut Chunk;
+        let mut final_size: usize;
+        let new_size: usize;
+        let mut size: usize;
+
+        let mut reclaim = false;
+        let mut i: c_int;
+
+        if is_mmapped(s) {
+            let extra = (*s).psize as isize;
+            let base = (s as *mut u8).offset(-extra);
+            let len = chunk_size(s) + extra as usize;
+
+            // crash on double free
+            if extra & 1 != 0 {
+                a_crash();
+            }
+            __munmap(base as *mut c_void, len);
+            return;
+        }
+
+        new_size = chunk_size(s);
+        final_size = new_size;
+        next = next_chunk(s);
+
+        // crash on corrupted footer (likely from buffer overflow)
+        if (*next).psize != (*s).csize {
+            a_crash();
+        }
+
+        {
+            let mut _held_lock = None;
+            loop {
+                if (*s).psize & (*next).csize & 1 != 0 {
+                    (*s).csize = final_size | 1;
+                    (*next).psize = final_size | 1;
+
+                    i = bin_index(final_size);
+                    lock_bin(i);
+                    _held_lock = Some(FREE_LOCK.lock());
+
+                    if (*s).psize & (*next).csize & 1 != 0 {
+                        break;
+                    }
+
+                    _held_lock = None;
+                    unlock_bin(i);
+                }
+
+                if alloc_rev(s) {
+                    s = previous_chunk(s);
+                    size = chunk_size(s);
+                    final_size += size;
+
+                    if new_size + size > RECLAIM && (new_size + size ^ size) > size {
+                        reclaim = true;
+                    }
+                }
+
+                if alloc_fwd(next) {
+                    size = chunk_size(next);
+                    final_size += size;
+                    if new_size + size > RECLAIM && (new_size + size ^ size) > size {
+                        reclaim = true;
+                    }
+                    next = next_chunk(next);
+                }
+            }
+
+            if (HEAP.binmap & 1u64 << i) == 0 {
+                a_or_64(&mut HEAP.binmap, 1u64 << i);
+            }
+
+            (*s).csize = final_size;
+            (*next).psize = final_size;
+        }
+
+        (*s).next = bin_to_chunk(i as usize);
+        (*s).prev = HEAP.bins[i as usize].tail;
+        (*(*s).next).prev = s;
+        (*(*s).prev).next = s;
+
+        // replace middle of large chunks with fresh zero pages
+        if reclaim {
+            let a = s as usize + SIZE_ALIGN + PAGE_SIZE as usize - 1 & (-PAGE_SIZE) as usize;
+            let b = next as usize - SIZE_ALIGN & (-PAGE_SIZE) as usize;
+            __madvise(a as *mut c_void, b - a, MADV_DONTNEED);
+        }
+
+        unlock_bin(i);
+    }
+}
 
 extern "C" {
     fn memcpy(dest: *mut c_void, src: *const c_void, n: usize) -> *mut u8;
@@ -83,7 +213,7 @@ pub unsafe extern "C" fn malloc(mut n: usize) -> *mut c_void {
 
     let i = bin_index_up(n);
     loop {
-        let mask = heap.binmap & (-((1usize << i) as isize)) as u64;
+        let mask = HEAP.binmap & (-((1usize << i) as isize)) as u64;
         if mask == 0 {
             c = expand_heap(n);
             if c.is_null() {
@@ -102,7 +232,7 @@ pub unsafe extern "C" fn malloc(mut n: usize) -> *mut c_void {
 
         let j = a_ctz_64(mask) as c_int;
         lock_bin(j);
-        c = heap.bins[j as usize].head;
+        c = HEAP.bins[j as usize].head;
 
         if c != bin_to_chunk(j as usize) {
             if pretrim(c, n, i, j) == 0 {
@@ -134,102 +264,7 @@ pub unsafe extern "C" fn __malloc0(n: usize) -> *mut c_void {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn free(p: *mut c_void) {
-
-    let mut s = mem_to_chunk(p);
-    let mut next: *mut Chunk;
-    let mut final_size: usize;
-    let new_size: usize;
-    let mut size: usize;
-
-    let mut reclaim = false;
-    let mut i: c_int;
-
-    if p.is_null() {
-        return;
-    }
-
-    if is_mmapped(s) {
-        let extra = (*s).psize as isize;
-        let base = (s as *mut u8).offset(-extra);
-        let len = chunk_size(s) + extra as usize;
-
-        // crash on double free
-        if extra & 1 != 0 {
-            a_crash();
-        }
-        __munmap(base as *mut c_void, len);
-        return;
-    }
-
-    new_size = chunk_size(s);
-    final_size = new_size;
-    next = next_chunk(s);
-
-    // crash on corrupted footer (likely from buffer overflow)
-    if (*next).psize != (*s).csize {
-        a_crash();
-    }
-
-    loop {
-        if (*s).psize & (*next).csize & 1 != 0 {
-            (*s).csize = final_size | 1;
-            (*next).psize = final_size | 1;
-
-            i = bin_index(final_size);
-            lock_bin(i);
-            lock(&mut heap.free_lock[0]);
-
-            if (*s).psize & (*next).csize & 1 != 0 {
-                break;
-            }
-
-            unlock(&mut heap.free_lock[0]);
-            unlock_bin(i);
-        }
-
-        if alloc_rev(s) {
-            s = previous_chunk(s);
-            size = chunk_size(s);
-            final_size += size;
-
-            if new_size + size > RECLAIM && (new_size + size ^ size) > size {
-                reclaim = true;
-            }
-        }
-
-        if alloc_fwd(next) {
-            size = chunk_size(next);
-            final_size += size;
-            if new_size + size > RECLAIM && (new_size + size ^ size) > size {
-                reclaim = true;
-            }
-            next = next_chunk(next);
-        }
-    }
-
-    if (heap.binmap & 1u64 << i) == 0 {
-        a_or_64(&mut heap.binmap, 1u64 << i);
-    }
-
-    (*s).csize = final_size;
-    (*next).psize = final_size;
-    unlock(&mut heap.free_lock[0]);
-
-    (*s).next = bin_to_chunk(i as usize);
-    (*s).prev = heap.bins[i as usize].tail;
-    (*(*s).next).prev = s;
-    (*(*s).prev).next = s;
-
-    // replace middle of large chunks with fresh zero pages
-    if reclaim {
-        let a = s as usize + SIZE_ALIGN + PAGE_SIZE as usize - 1 & (-PAGE_SIZE) as usize;
-        let b = next as usize - SIZE_ALIGN & (-PAGE_SIZE) as usize;
-        __madvise(a as *mut c_void, b - a, MADV_DONTNEED);
-    }
-
-    unlock_bin(i);
-}
+pub unsafe extern "C" fn free(p: *mut c_void) { HEAP.free_ptr(p); }
 
 #[no_mangle]
 pub unsafe extern "C" fn realloc(p: *mut c_void, mut n: usize) -> *mut c_void {
@@ -342,7 +377,7 @@ pub unsafe extern "C" fn adjust_size(n: *mut usize) -> c_int {
 #[no_mangle]
 pub unsafe extern "C" fn unbin(c: *mut Chunk, i: c_int) {
     if (*c).prev == (*c).next {
-        a_and_64(&mut heap.binmap, !(1u64 << i));
+        a_and_64(&mut HEAP.binmap, !(1u64 << i));
     }
 
     (*(*c).prev).next = (*c).next;
@@ -505,7 +540,7 @@ unsafe fn chunk_to_mem(c: *mut Chunk) -> *mut c_void {
 }
 
 unsafe fn bin_to_chunk(i: usize) -> *mut Chunk {
-    mem_to_chunk(((&mut heap.bins[i].head) as *mut *mut Chunk as usize) as *mut c_void)
+    mem_to_chunk(((&mut HEAP.bins[i].head) as *mut *mut Chunk as usize) as *mut c_void)
 }
 
 unsafe fn chunk_size(c: *mut Chunk) -> usize { (*c).csize & ((-2i64) as usize) }
@@ -540,16 +575,16 @@ pub unsafe extern "C" fn unlock(lock: *mut c_int) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn unlock_bin(i: c_int) { unlock(&mut heap.bins[i as usize].lock[0]); }
+pub unsafe extern "C" fn unlock_bin(i: c_int) { unlock(&mut HEAP.bins[i as usize].lock[0]); }
 
 #[no_mangle]
 pub unsafe extern "C" fn lock_bin(i: c_int) {
     let i = i as usize;
-    lock(&mut heap.bins[i].lock[0]);
+    lock(&mut HEAP.bins[i].lock[0]);
 
-    if heap.bins[i].head.is_null() {
-        heap.bins[i].tail = bin_to_chunk(i);
-        heap.bins[i].head = heap.bins[i].tail;
+    if HEAP.bins[i].head.is_null() {
+        HEAP.bins[i].tail = bin_to_chunk(i);
+        HEAP.bins[i].head = HEAP.bins[i].tail;
     }
 }
 
