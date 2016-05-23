@@ -18,34 +18,34 @@ pub const DONTCARE: usize = 16;
 pub const RECLAIM: usize = 163_840;
 
 #[repr(C)]
-pub struct chunk {
+pub struct Chunk {
     psize: usize,
     csize: usize,
-    next: *mut chunk,
-    prev: *mut chunk,
+    next: *mut Chunk,
+    prev: *mut Chunk,
 }
 
 #[repr(C)]
 #[derive(Copy, Clone)]
-pub struct bin {
+pub struct Bin {
     lock: [c_int; 2],
-    head: *mut chunk,
-    tail: *mut chunk,
+    head: *mut Chunk,
+    tail: *mut Chunk,
 }
 
 #[repr(C)]
-pub struct mal {
+pub struct Heap {
     binmap: u64,
-    bins: [bin; 64],
+    bins: [Bin; 64],
     free_lock: [c_int; 2],
 }
 
-static mut mal: mal = mal {
+static mut heap: Heap = Heap {
     binmap: 0,
-    bins: [bin {
+    bins: [Bin {
         lock: [0; 2],
-        head: ptr::null::<chunk>() as *mut chunk,
-        tail: ptr::null::<chunk>() as *mut chunk
+        head: ptr::null::<Chunk>() as *mut Chunk,
+        tail: ptr::null::<Chunk>() as *mut Chunk,
     }; 64],
     free_lock: [0; 2],
 };
@@ -56,7 +56,7 @@ extern "C" {
 
 #[no_mangle]
 pub unsafe extern "C" fn malloc(mut n: usize) -> *mut c_void {
-    let mut c: *mut chunk;
+    let mut c: *mut Chunk;
 
     if adjust_size(&mut n) < 0 {
         return ptr::null_mut();
@@ -75,7 +75,7 @@ pub unsafe extern "C" fn malloc(mut n: usize) -> *mut c_void {
             return ptr::null_mut();
         }
 
-        c = base.offset((SIZE_ALIGN - OVERHEAD) as isize) as *mut chunk;
+        c = base.offset((SIZE_ALIGN - OVERHEAD) as isize) as *mut Chunk;
         (*c).csize = len - (SIZE_ALIGN - OVERHEAD);
         (*c).psize = SIZE_ALIGN - OVERHEAD;
         return chunk_to_mem(c);
@@ -83,7 +83,7 @@ pub unsafe extern "C" fn malloc(mut n: usize) -> *mut c_void {
 
     let i = bin_index_up(n);
     loop {
-        let mask = mal.binmap & (-((1usize << i) as isize)) as u64;
+        let mask = heap.binmap & (-((1usize << i) as isize)) as u64;
         if mask == 0 {
             c = expand_heap(n);
             if c.is_null() {
@@ -102,7 +102,7 @@ pub unsafe extern "C" fn malloc(mut n: usize) -> *mut c_void {
 
         let j = a_ctz_64(mask) as c_int;
         lock_bin(j);
-        c = mal.bins[j as usize].head;
+        c = heap.bins[j as usize].head;
 
         if c != bin_to_chunk(j as usize) {
             if pretrim(c, n, i, j) == 0 {
@@ -137,7 +137,7 @@ pub unsafe extern "C" fn __malloc0(n: usize) -> *mut c_void {
 pub unsafe extern "C" fn free(p: *mut c_void) {
 
     let mut s = mem_to_chunk(p);
-    let mut next: *mut chunk;
+    let mut next: *mut Chunk;
     let mut final_size: usize;
     let new_size: usize;
     let mut size: usize;
@@ -178,13 +178,13 @@ pub unsafe extern "C" fn free(p: *mut c_void) {
 
             i = bin_index(final_size);
             lock_bin(i);
-            lock(&mut mal.free_lock[0]);
+            lock(&mut heap.free_lock[0]);
 
             if (*s).psize & (*next).csize & 1 != 0 {
                 break;
             }
 
-            unlock(&mut mal.free_lock[0]);
+            unlock(&mut heap.free_lock[0]);
             unlock_bin(i);
         }
 
@@ -208,16 +208,16 @@ pub unsafe extern "C" fn free(p: *mut c_void) {
         }
     }
 
-    if (mal.binmap & 1u64 << i) == 0 {
-        a_or_64(&mut mal.binmap, 1u64 << i);
+    if (heap.binmap & 1u64 << i) == 0 {
+        a_or_64(&mut heap.binmap, 1u64 << i);
     }
 
     (*s).csize = final_size;
     (*next).psize = final_size;
-    unlock(&mut mal.free_lock[0]);
+    unlock(&mut heap.free_lock[0]);
 
     (*s).next = bin_to_chunk(i as usize);
-    (*s).prev = mal.bins[i as usize].tail;
+    (*s).prev = heap.bins[i as usize].tail;
     (*(*s).next).prev = s;
     (*(*s).prev).next = s;
 
@@ -279,7 +279,7 @@ pub unsafe extern "C" fn realloc(p: *mut c_void, mut n: usize) -> *mut c_void {
             };
         }
 
-        let s = base.offset(extra as isize) as *mut chunk;
+        let s = base.offset(extra as isize) as *mut Chunk;
         (*s).csize = new_len - extra;
 
         return chunk_to_mem(s);
@@ -340,9 +340,9 @@ pub unsafe extern "C" fn adjust_size(n: *mut usize) -> c_int {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn unbin(c: *mut chunk, i: c_int) {
+pub unsafe extern "C" fn unbin(c: *mut Chunk, i: c_int) {
     if (*c).prev == (*c).next {
-        a_and_64(&mut mal.binmap, !(1u64 << i));
+        a_and_64(&mut heap.binmap, !(1u64 << i));
     }
 
     (*(*c).prev).next = (*c).next;
@@ -352,7 +352,7 @@ pub unsafe extern "C" fn unbin(c: *mut chunk, i: c_int) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn alloc_fwd(c: *mut chunk) -> bool {
+pub unsafe extern "C" fn alloc_fwd(c: *mut Chunk) -> bool {
     let mut i: c_int;
     let mut k: usize;
 
@@ -374,7 +374,7 @@ pub unsafe extern "C" fn alloc_fwd(c: *mut chunk) -> bool {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn alloc_rev(c: *mut chunk) -> bool {
+pub unsafe extern "C" fn alloc_rev(c: *mut Chunk) -> bool {
     let mut i: c_int;
     let mut k: usize;
 
@@ -398,7 +398,7 @@ pub unsafe extern "C" fn alloc_rev(c: *mut chunk) -> bool {
 // Must be called with i as the ideal bin for size n, j the bin
 // for the _free_ chunk self, and bin j locked.
 #[no_mangle]
-pub unsafe extern "C" fn pretrim(s: *mut chunk, n: usize, i: c_int, j: c_int) -> c_int {
+pub unsafe extern "C" fn pretrim(s: *mut Chunk, n: usize, i: c_int, j: c_int) -> c_int {
     // We cannot pretrim if it would require re-binning.
     if j < 40 || (j < i + 3 && j != 63) {
         return 0;
@@ -415,7 +415,7 @@ pub unsafe extern "C" fn pretrim(s: *mut chunk, n: usize, i: c_int, j: c_int) ->
     }
 
     let next = next_chunk(s);
-    let split = (s as *mut u8).offset(n as isize) as *mut chunk;
+    let split = (s as *mut u8).offset(n as isize) as *mut Chunk;
 
     (*split).prev = (*s).prev;
     (*split).next = (*s).next;
@@ -432,7 +432,7 @@ pub unsafe extern "C" fn pretrim(s: *mut chunk, n: usize, i: c_int, j: c_int) ->
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn trim(s: *mut chunk, n: usize) {
+pub unsafe extern "C" fn trim(s: *mut Chunk, n: usize) {
     let n1 = chunk_size(s);
 
     if n >= n1 - DONTCARE {
@@ -440,7 +440,7 @@ pub unsafe extern "C" fn trim(s: *mut chunk, n: usize) {
     }
 
     let next = next_chunk(s);
-    let split = (s as *mut u8).offset(n as isize) as *mut chunk;
+    let split = (s as *mut u8).offset(n as isize) as *mut Chunk;
 
     (*split).psize = n | 1;
     (*split).csize = (n1 - n) | 1;
@@ -453,11 +453,11 @@ pub unsafe extern "C" fn trim(s: *mut chunk, n: usize) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn expand_heap(mut n: usize) -> *mut chunk {
+pub unsafe extern "C" fn expand_heap(mut n: usize) -> *mut Chunk {
     static mut heap_lock: Mutex<*mut c_void> = Mutex::new(ptr::null_mut());
 
     let mut p: *mut c_void;
-    let mut w: *mut chunk;
+    let mut w: *mut Chunk;
 
     // The argument n already accounts for the caller's chunk
     // overhead needs, but if the heap can't be extended in-place,
@@ -496,31 +496,31 @@ pub unsafe extern "C" fn expand_heap(mut n: usize) -> *mut chunk {
     w
 }
 
-unsafe fn mem_to_chunk(ptr: *mut c_void) -> *mut chunk {
-    ((ptr as *mut u8).offset(-(OVERHEAD as isize))) as *mut chunk
+unsafe fn mem_to_chunk(ptr: *mut c_void) -> *mut Chunk {
+    ((ptr as *mut u8).offset(-(OVERHEAD as isize))) as *mut Chunk
 }
 
-unsafe fn chunk_to_mem(c: *mut chunk) -> *mut c_void {
+unsafe fn chunk_to_mem(c: *mut Chunk) -> *mut c_void {
     (c as *mut u8).offset(OVERHEAD as isize) as *mut c_void
 }
 
-unsafe fn bin_to_chunk(i: usize) -> *mut chunk {
-    mem_to_chunk(((&mut mal.bins[i].head) as *mut *mut chunk as usize) as *mut c_void)
+unsafe fn bin_to_chunk(i: usize) -> *mut Chunk {
+    mem_to_chunk(((&mut heap.bins[i].head) as *mut *mut Chunk as usize) as *mut c_void)
 }
 
-unsafe fn chunk_size(c: *mut chunk) -> usize { (*c).csize & ((-2i64) as usize) }
+unsafe fn chunk_size(c: *mut Chunk) -> usize { (*c).csize & ((-2i64) as usize) }
 
-unsafe fn chunk_psize(c: *mut chunk) -> usize { (*c).psize & ((-2i64) as usize) }
+unsafe fn chunk_psize(c: *mut Chunk) -> usize { (*c).psize & ((-2i64) as usize) }
 
-unsafe fn previous_chunk(c: *mut chunk) -> *mut chunk {
-    (c as *mut u8).offset(-(chunk_psize(c) as isize)) as *mut chunk
+unsafe fn previous_chunk(c: *mut Chunk) -> *mut Chunk {
+    (c as *mut u8).offset(-(chunk_psize(c) as isize)) as *mut Chunk
 }
 
-unsafe fn next_chunk(c: *mut chunk) -> *mut chunk {
-    (c as *mut u8).offset(chunk_size(c) as isize) as *mut chunk
+unsafe fn next_chunk(c: *mut Chunk) -> *mut Chunk {
+    (c as *mut u8).offset(chunk_size(c) as isize) as *mut Chunk
 }
 
-unsafe fn is_mmapped(c: *mut chunk) -> bool { ((*c).csize & 1) == 0 }
+unsafe fn is_mmapped(c: *mut Chunk) -> bool { ((*c).csize & 1) == 0 }
 
 #[no_mangle]
 pub unsafe extern "C" fn lock(lock: *mut c_int) {
@@ -540,16 +540,16 @@ pub unsafe extern "C" fn unlock(lock: *mut c_int) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn unlock_bin(i: c_int) { unlock(&mut mal.bins[i as usize].lock[0]); }
+pub unsafe extern "C" fn unlock_bin(i: c_int) { unlock(&mut heap.bins[i as usize].lock[0]); }
 
 #[no_mangle]
 pub unsafe extern "C" fn lock_bin(i: c_int) {
     let i = i as usize;
-    lock(&mut mal.bins[i].lock[0]);
+    lock(&mut heap.bins[i].lock[0]);
 
-    if mal.bins[i].head.is_null() {
-        mal.bins[i].tail = bin_to_chunk(i);
-        mal.bins[i].head = mal.bins[i].tail;
+    if heap.bins[i].head.is_null() {
+        heap.bins[i].tail = bin_to_chunk(i);
+        heap.bins[i].head = heap.bins[i].tail;
     }
 }
 
