@@ -1,6 +1,12 @@
 # rusl
 
-This is a super experimental attempt at re-implementing [musl](http://musl-libc.org) in Rust. No progress to report yet.
+[![Build Status](https://img.shields.io/travis/dikaiosune/rusl/master.svg?style=flat-square)](https://travis-ci.org/dikaiosune/rusl) [![License](https://img.shields.io/badge/license-MIT-lightgray.svg?style=flat-square)](https://github.com/dikaiosune/rusl/blob/master/LICENSE)
+
+This is a super experimental attempt at re-implementing [musl](http://musl-libc.org) in Rust.
+
+Blog post(s):
+
+* [Baby Steps: Slowly Porting musl to Rust](http://blog.adamperry.me/rust/2016/06/11/baby-steps-porting-musl-to-rust/)
 
 ## A little background
 
@@ -29,3 +35,11 @@ There are also a whole bunch of things I have no intention of doing:
 * Ever having this code used in production. Ever. No really, ever. The test suite that I'm using has gaps (if you're a POSIX aficionado and a musl fan, I'm sure they'd love help improving the coverage), and while I feel pretty confident about higher-level work I do, I'm dumb as a rock when it comes to pointer math.
 * Supporting any platform other than Linux on x86_64. Or really supporting any platform other than my laptop or desktop.
 * Trying to improve upon what musl actually does. If a bug gets fixed accidentally, then cool. But right now I'm just trying to replicate its behavior nearly exactly in Rust.
+
+## Contributing
+
+CI is now set up for Pull Requests, so that needs to pass before a PR is reviewed. There aren't enough contributions right now to write a style guide, but before submitting anything please read some of the existing code to get a feeling for the current style before submitting anything, and also run [rustfmt](https://github.com/rust-lang-nursery/rustfmt) on your submission using this repository's configuration. Since this is just my hobby project at the moment, please be patient if I nitpick your PR -- there are no practical goals here so I'd like to keep things nice (even if it's at the expense of time spent or contributions lost).
+
+## LICENSE
+
+Like musl, rusl is made available under the MIT license.
