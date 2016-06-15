@@ -3,7 +3,7 @@
 set -e
 
 BASE_DIR=`pwd`
-BUILD_DIR=${BASE_DIR}/build
+BUILD_DIR=${BASE_DIR}/bld
 MUSL_SRC_DIR=${BASE_DIR}/musl
 TESTS_SRC_DIR=${BASE_DIR}/libc-test
 NUM_CPUS=`grep -c ^processor /proc/cpuinfo`
@@ -54,12 +54,12 @@ build_and_run_tests() {
     make -j ${NUM_CPUS} CC=${BUILD_DIR}/usr/bin/musl-gcc
     cat ${TESTS_SRC_DIR}/src/REPORT | grep FAIL > ${BASE_DIR}/rusl_failures
 
-    echo "#####################################################################"
-    echo "#####################################################################"
-    echo "#####################################################################"
-    echo "#####################################################################"
+    echo
+    echo
+    echo
+    echo
     echo "Tests that failed on rusl but not on vanilla musl:"
-    echo "#####################################################################"
+    echo
 
     cd ${BASE_DIR}
 }
