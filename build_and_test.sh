@@ -60,15 +60,20 @@ build_and_run_tests() {
     echo "#####################################################################"
     echo "Tests that failed on rusl but not on vanilla musl:"
     echo "#####################################################################"
-    grep -v -F -x -f ${BASE_DIR}/baseline_failures ${BASE_DIR}/rusl_failures
 
     cd ${BASE_DIR}
 }
-
-#trap clean_and_exit_build_dir EXIT
 
 mkdir -p ${BUILD_DIR}/usr
 build_musl
 build_rusl
 combine_rusl_and_musl
 build_and_run_tests
+
+# check to see if any rusl failures are new failures
+# we need to invert the exit code of grep here, if nothing's found it's a good thing
+if ! grep -v -F -x -f ${BASE_DIR}/baseline_failures ${BASE_DIR}/rusl_failures; then
+    true
+else
+    false
+fi
