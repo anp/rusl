@@ -10,5 +10,5 @@ pub unsafe extern "C" fn strlen(s: *const c_schar) -> size_t {
             return i as usize;
         }
     }
-    return usize::MAX;
+    usize::MAX
 }
