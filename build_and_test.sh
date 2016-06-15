@@ -42,7 +42,7 @@ combine_rusl_and_musl() {
     cd ${LIB_TEMP_DIR}
     ar -x librusl.a
     ar -r ../libc.a ${LIB_TEMP_DIR}/*.o
-    rm -dr ${LIB_TEMP_DIR}
+    rm -r ${LIB_TEMP_DIR}
 }
 
 build_and_run_tests() {
