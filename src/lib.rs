@@ -23,10 +23,10 @@ pub mod unistd;
 #[path="platform/linux-x86_64/mod.rs"]
 pub mod platform;
 
-pub use platform::atomic as atomic;
-pub use platform::c_types as c_types;
-pub use platform::errno as errno;
-pub use platform::environ as environ;
-pub use platform::mman as mman;
-pub use platform::pthread as pthread;
-pub use platform::signal as signal;
+pub use platform::atomic;
+pub use platform::c_types;
+pub use platform::errno;
+pub use platform::environ;
+pub use platform::mman;
+pub use platform::pthread;
+pub use platform::signal;
