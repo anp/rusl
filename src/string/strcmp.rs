@@ -12,5 +12,5 @@ pub unsafe extern "C" fn strcmp(l: *const c_schar, r: *const c_schar) -> c_int {
             return (lc - rc) as c_int;
         }
     }
-    return i32::MAX;
+    i32::MAX
 }

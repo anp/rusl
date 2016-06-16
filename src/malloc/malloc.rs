@@ -401,14 +401,14 @@ impl Heap {
             n -= SIZE_ALIGN;
             p = (p as *mut u8).offset(SIZE_ALIGN as isize) as *mut c_void;
             w = Chunk::from_mem(p);
-            (*w).psize = 0 | 1;
+            (*w).psize = 1;
         }
 
         // Record new heap end and fill in footer.
         *end = (p as *mut u8).offset(n as isize) as *mut c_void;
         w = Chunk::from_mem(*end);
         (*w).psize = n | 1;
-        (*w).csize = 0 | 1;
+        (*w).csize = 1;
 
         // Fill in header, which may be new or may be replacing a
         // zero-size sentinel header at the old end-of-heap.
@@ -532,7 +532,7 @@ impl Heap {
 
         (*s).csize = n | 1;
 
-        return true;
+        true
     }
 
     unsafe fn adjust_size(&self, n: *mut usize) -> c_int {
@@ -540,15 +540,15 @@ impl Heap {
         if *n - 1 > isize::MAX as usize - SIZE_ALIGN as usize - PAGE_SIZE as usize {
             if *n != 0 {
                 set_errno(ENOMEM);
-                return -1;
+                -1
             } else {
                 *n = SIZE_ALIGN;
-                return 0;
+                0
             }
+        } else {
+            *n = (*n + OVERHEAD + SIZE_ALIGN - 1) & SIZE_MASK;
+            0
         }
-
-        *n = (*n + OVERHEAD + SIZE_ALIGN - 1) & SIZE_MASK;
-        return 0;
     }
 }
 

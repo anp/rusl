@@ -10,7 +10,7 @@ pub unsafe fn syscall_return(code: usize) -> usize {
         set_errno(-(code as c_int));
         (-1isize) as usize
     } else {
-        transmute(code)
+        code
     }
 }
 

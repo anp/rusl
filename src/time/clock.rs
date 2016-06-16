@@ -30,7 +30,7 @@ pub unsafe extern "C" fn clock_gettime(clock: clockid_t, spec: &mut timespec) ->
     if r == -ENOSYS {
         if clock == CLOCK_REALTIME {
             syscall!(GETTIMEOFDAY, spec as *mut timespec, 0);
-            spec.tv_nsec = spec.tv_nsec * 1000;
+            spec.tv_nsec *= 1000;
             return 0;
         }
         r = -EINVAL;

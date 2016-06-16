@@ -87,7 +87,7 @@ pub unsafe extern "C" fn __expand_heap(pn: *mut size_t) -> *mut c_void {
 
     let area = __mmap(ptr::null_mut(),
                       n,
-                      PROT_READ | PROT_READ,
+                      PROT_READ | PROT_WRITE,
                       MAP_PRIVATE | MAP_ANONYMOUS,
                       -1,
                       0);
