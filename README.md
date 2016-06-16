@@ -36,6 +36,14 @@ There are also a whole bunch of things I have no intention of doing:
 * Supporting any platform other than Linux on x86_64. Or really supporting any platform other than my laptop or desktop.
 * Trying to improve upon what musl actually does. If a bug gets fixed accidentally, then cool. But right now I'm just trying to replicate its behavior nearly exactly in Rust.
 
+## Running tests
+
+If you'd like to run the tests (right now rusl only support x86_64 Linux), clone the repo and run:
+
+```
+scripts/clean_all.sh && scripts/build_and_test.sh
+```
+
 ## Contributing
 
 CI is now set up for Pull Requests, so that needs to pass before a PR is reviewed. There aren't enough contributions right now to write a style guide, but before submitting anything please read some of the existing code to get a feeling for the current style before submitting anything, and also run [rustfmt](https://github.com/rust-lang-nursery/rustfmt) on your submission using this repository's configuration. Since this is just my hobby project at the moment, please be patient if I nitpick your PR -- there are no practical goals here so I'd like to keep things nice (even if it's at the expense of time spent or contributions lost).
