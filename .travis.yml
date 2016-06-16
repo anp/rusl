@@ -1,4 +1,9 @@
 language: rust
 rust:
   - nightly
-script: scripts/build_and_test.sh
+script:
+  - mkdir -p bld/usr
+  - scripts/musl.sh
+  - scripts/rusl.sh
+  - scripts/frankenstein.sh
+  - scripts/test.sh
