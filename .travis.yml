@@ -2,10 +2,13 @@ language: rust
 env:
   global:
     - RUSTFMT_VERSION=0.5.0
+cache:
+  directories:
+  - $HOME/.cargo/bin
 rust:
   - nightly
 before_script:
-  - cargo install rustfmt --vers $RUSTFMT_VERSION --no-default-features
+  - cargo install rustfmt --vers $RUSTFMT_VERSION
   - export PATH=$PATH:$HOME/.cargo/bin/
 script:
   - scripts/check_format.sh
