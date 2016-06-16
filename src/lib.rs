@@ -5,9 +5,12 @@
 
 #[macro_use]
 extern crate lazy_static;
+extern crate rlibc;
 extern crate spin;
 extern crate syscall;
 extern crate va_list;
+
+pub use rlibc::*;
 
 #[macro_use]
 pub mod syscall_mgt;
