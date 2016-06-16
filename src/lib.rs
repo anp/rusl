@@ -1,6 +1,5 @@
 #![no_std]
 #![feature(asm, const_fn, lang_items, linkage)]
-// #![needs_panic_runtime]
 
 #![allow(non_camel_case_types)]
 
@@ -20,58 +19,14 @@ pub mod thread;
 pub mod time;
 pub mod unistd;
 
-// #[cfg(all(target_os="linux", target_arch="x86"))]
-// #[path="platform/linux-x86/mod.rs"]
-// pub mod platform;
-
 #[cfg(all(target_os="linux", target_arch="x86_64"))]
 #[path="platform/linux-x86_64/mod.rs"]
 pub mod platform;
 
-// #[cfg(all(target_os="freebsd", target_arch="x86_64"))]
-// #[path="platform/freebsd-x86_64/mod.rs"]
-// pub mod platform;
-
-// #[cfg(all(target_os="linux", target_arch="arm"))]
-// #[path="platform/linux-armeabi/mod.rs"]
-// pub mod platform;
-
-// #[cfg(all(target_os="macos", target_arch="x86_64"))]
-// #[path="platform/macos-x86_64/mod.rs"]
-// pub mod platform;
-
-pub mod atomic {
-    pub use platform::atomic::*;
-}
-
-pub mod c_types {
-    pub use platform::c_types::*;
-}
-
-pub mod environ {
-    pub use platform::environ::*;
-}
-
-pub mod errno {
-    pub use platform::errno::*;
-}
-
-pub mod mman {
-    pub use platform::mman::*;
-}
-
-pub mod pthread {
-    pub use platform::pthread::*;
-}
-
-pub mod signal {
-    pub use platform::signal::*;
-}
-
-// #[lang = "eh_personality"]
-// extern "C" fn eh_personality() {}
-//
-// #[lang = "panic_fmt"]
-// fn panic_fmt() -> ! {
-// loop {}
-// }
+pub use platform::atomic as atomic;
+pub use platform::c_types as c_types;
+pub use platform::errno as errno;
+pub use platform::environ as environ;
+pub use platform::mman as mman;
+pub use platform::pthread as pthread;
+pub use platform::signal as signal;

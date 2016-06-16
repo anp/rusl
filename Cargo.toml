@@ -14,5 +14,9 @@ spin = "0.4.0"
 syscall = "0.2.1"
 va_list = "0.0.3"
 
+[profile.dev]
+panic = "abort"
+
 [profile.release]
 debug = true
+panic = "abort"
