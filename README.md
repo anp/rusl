@@ -24,6 +24,13 @@ CI is now set up for Pull Requests, so that needs to pass before a PR is reviewe
 
 Please see issue #6 if you'd like help figuring out a starting point for contributions.
 
+## Documentation
+
+Since musl doesn't include documentation itself, this project won't make any effort to add new documentation beyond any comments necessary to clarify implementation-specific behavior. For documentation of C language functions and the POSIX C standard library, see:
+
+* [C99 language standard](http://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf)
+* [POSIX System Interface Functions](http://pubs.opengroup.org/onlinepubs/9699919799/functions/contents.html)
+
 ## A little background
 
 [musl](http://www.musl-libc.org/) is, according to its homepage, "a new standard library to power a new generation of Linux-based devices. **musl** is *lightweight, fast, simple, free,* and strives to be *correct* in the sense of standards-conformance and safety."
