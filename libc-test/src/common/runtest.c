@@ -25,7 +25,7 @@ static int start(char *wrap, char *argv[])
 			argv--;
 			argv[0] = wrap;
 		}
-		execvp(argv[0], argv);
+		execv(argv[0], argv);
 		t_error("%s exec failed: %s\n", argv[0], strerror(errno));
 		exit(1);
 	}

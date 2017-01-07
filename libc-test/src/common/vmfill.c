@@ -7,6 +7,9 @@
 #ifndef PAGE_SIZE
 	#define PAGE_SIZE sysconf(_SC_PAGE_SIZE)
 #endif
+#ifndef MAP_ANONYMOUS
+	#define MAP_ANONYMOUS 0
+#endif
 
 /* max mmap size, *start is the largest power-of-2 size considered */
 static size_t mmax(int fd, size_t *start)
@@ -15,7 +18,7 @@ static size_t mmax(int fd, size_t *start)
 	void *p;
 
 	for (i=n=*start; i>=PAGE_SIZE; i/=2) {
-		if ((p=mmap(0, n, PROT_NONE, MAP_PRIVATE, fd, 0)) == MAP_FAILED) {
+		if ((p=mmap(0, n, PROT_NONE, MAP_PRIVATE|MAP_ANONYMOUS, fd, 0)) == MAP_FAILED) {
 			n -= i/2;
 		} else {
 			munmap(p, n);
@@ -34,7 +37,7 @@ the return value is the number of mappings or -1 on failure.
 */
 int t_vmfill(void **p, size_t *n, int len)
 {
-	int fd = open("/dev/zero", O_RDWR);
+	int fd = MAP_ANONYMOUS ? -1 : open("/dev/zero", O_RDWR);
 	size_t start = SIZE_MAX/2 + 1;
 	size_t m;
 	void *q;
@@ -44,7 +47,7 @@ int t_vmfill(void **p, size_t *n, int len)
 		m = mmax(fd, &start);
 		if (!m)
 			break;
-		q = mmap(0, m, PROT_NONE, MAP_PRIVATE, fd, 0);
+		q = mmap(0, m, PROT_NONE, MAP_PRIVATE|MAP_ANONYMOUS, fd, 0);
 		if (q == MAP_FAILED)
 			return -1;
 		if (i < len) {

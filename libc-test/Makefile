@@ -5,7 +5,7 @@ LOBJS:=$(SRCS:src/%.c=$(B)/%.lo)
 DIRS:=$(patsubst src/%/,%,$(sort $(dir $(SRCS))))
 BDIRS:=$(DIRS:%=$(B)/%)
 NAMES:=$(SRCS:src/%.c=%)
-CFLAGS:=-Isrc/common -I$(B)/common
+CFLAGS:=-I$(B)/common -Isrc/common
 LDLIBS:=$(B)/common/libtest.a
 AR = $(CROSS_COMPILE)ar
 RANLIB = $(CROSS_COMPILE)ranlib
@@ -102,7 +102,12 @@ $(BDIRS):
 	mkdir -p $@
 
 $(B)/common/options.h: src/common/options.h.in
-	$(CC) -E - <$< | sed -e '1,/optiongroups_unistd_end/d' -e '/^#/d' -e '/^[[:space:]]*$$/d' -e 's/^/#define /' >$@
+	$(CC) -E - <$< | awk ' \
+		/optiongroups_unistd_end/ {s=1; next} \
+		!s || !NF || /^#/ {next} \
+		!a {a=$$1; if(NF==1)next} \
+		{print "#define "a" "$$NF; a=""}' >$@.tmp
+	mv $@.tmp $@
 
 $(B)/common/mtest.o: src/common/mtest.h
 $(math.OBJS): src/common/mtest.h
@@ -143,7 +148,7 @@ $(B)/%.exe: $(B)/%.o
 %.ld.err: %.exe
 	touch $@
 %.err: %.exe
-	$(RUN_TEST) ./$< >$@ || true
+	$(RUN_TEST) $< >$@ || true
 
 .PHONY: all run clean cleanall
 

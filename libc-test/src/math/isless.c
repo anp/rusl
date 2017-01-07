@@ -88,13 +88,13 @@ int main()
 
 #if FLT_EVAL_METHOD >= 1
 	T(hugef*hugef, hugef*hugef*2, LESS);
-	T(tiny*tiny*0.5f, tiny*tiny, LESS);
-	T(-tiny*tiny, 0.0f, LESS);
+	T(tinyf*tinyf*0.5f, tinyf*tinyf, LESS);
+	T(-tinyf*tinyf, 0.0f, LESS);
 	T(1.0f, 1.0f+epsf*0.25f, LESS);
 #else
 	T(hugef*hugef, hugef*hugef*2, EQUAL);
-	T(tiny*tiny*0.5f, tiny*tiny, EQUAL);
-	T(-tiny*tiny, 0.0f, EQUAL);
+	T(tinyf*tinyf*0.5f, tinyf*tinyf, EQUAL);
+	T(-tinyf*tinyf, 0.0f, EQUAL);
 	T(1.0f, 1.0f+epsf*0.25f, EQUAL);
 #endif
 
