@@ -1,0 +1,6 @@
+[submodule "musl"]
+	path = musl
+	url = git://git.musl-libc.org/musl
+[submodule "libc-test"]
+	path = libc-test
+	url = ssh://git@repo.or.cz/libc-test.git

@@ -580,13 +580,13 @@ pub unsafe extern "C" fn free(p: *mut c_void) { HEAP.free_ptr(p); }
 #[no_mangle]
 pub unsafe extern "C" fn realloc(p: *mut c_void, n: usize) -> *mut c_void { HEAP.reallocate(p, n) }
 
-pub unsafe fn lock(lock: *mut c_int) {
+unsafe fn lock(lock: *mut c_int) {
     while a_swap(lock, 1) != 0 {
         __wait(lock, lock.offset(1), 1, 1);
     }
 }
 
-pub unsafe fn unlock(lock: *mut c_int) {
+unsafe fn unlock(lock: *mut c_int) {
     if *lock != 0 {
         a_store(lock, 0);
         if *lock.offset(1) != 0 {
@@ -595,9 +595,9 @@ pub unsafe fn unlock(lock: *mut c_int) {
     }
 }
 
-pub unsafe fn unlock_bin(i: c_int) { unlock(&mut HEAP.bins[i as usize].lock[0]); }
+unsafe fn unlock_bin(i: c_int) { unlock(&mut HEAP.bins[i as usize].lock[0]); }
 
-pub unsafe fn lock_bin(i: c_int) {
+unsafe fn lock_bin(i: c_int) {
     let i = i as usize;
     lock(&mut HEAP.bins[i].lock[0]);
 

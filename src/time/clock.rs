@@ -95,6 +95,6 @@ pub unsafe extern "C" fn clock_nanosleep(clock: clockid_t,
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn clock_setttime(clock: clockid_t, spec: &timespec) -> c_int {
+pub unsafe extern "C" fn clock_settime(clock: clockid_t, spec: &timespec) -> c_int {
     syscall!(CLOCK_SETTIME, clock, spec as *const timespec) as c_int
 }

@@ -1,22 +1,24 @@
 #!/usr/bin/env bash
 
-set -e
+set -ex
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 BASE_DIR=${DIR}/..
 BUILD_DIR=${BASE_DIR}/bld
-MUSL_SRC_DIR=${BASE_DIR}/musl
-TESTS_SRC_DIR=${BASE_DIR}/libc-test
 
 # move the two archives into a tempdir
-cd ${BUILD_DIR}/usr/lib
-LIB_TEMP_DIR=${BUILD_DIR}/usr/lib/temp
-mkdir ${LIB_TEMP_DIR}
-mv librusl.a ${LIB_TEMP_DIR}/
+cd "${BUILD_DIR}"/usr/lib
+LIB_TEMP_DIR="${BUILD_DIR}"/usr/lib/temp
+mkdir "${LIB_TEMP_DIR}"
+mv librusl.a "${LIB_TEMP_DIR}"/
 
-# extract the object files
-# and recombine them so that the Rust symbols are alongside the C symbols
-cd ${LIB_TEMP_DIR}
+cd "${LIB_TEMP_DIR}"
+# delete all ported object files from libc.a
+PORTED_OBJECTS=()
+while IFS= read -r line; do
+  PORTED_OBJECTS+=(${line})
+done < "${BASE_DIR}"/ported_objects
+ar -dv ../libc.a "${PORTED_OBJECTS[@]}"
 ar -x librusl.a
-ar -r ../libc.a ${LIB_TEMP_DIR}/*.o
-rm -r ${LIB_TEMP_DIR}
+ar -r ../libc.a "${LIB_TEMP_DIR}"/*.o
+rm -r "${LIB_TEMP_DIR}"

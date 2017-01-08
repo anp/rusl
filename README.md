@@ -18,11 +18,48 @@ scripts/clean_all.sh && scripts/build_and_test.sh
 
 ## Contributing
 
-If you want to contribute -- thanks, I'm flattered! Please be aware that this just a hobby project, so reviews may not be very rapid. Also, while CI is configured, please please please make sure your code builds and tests pass using a recent nightly on an x86_64 Linux box/VM/VPS. It will save a lot of time before the submission gets to the review phase.
+If you want to contribute -- thanks, I'm flattered! Please be aware that this
+just a hobby project, so reviews may not be very rapid. Also, while CI is
+configured, please please please make sure your code builds and tests pass using
+a recent nightly on an x86_64 Linux box/VM/VPS. It will save a lot of time
+before the submission gets to the review phase.
 
-CI is now set up for Pull Requests, so that needs to pass before a PR is reviewed. There aren't enough contributions right now to write a style guide, but before submitting anything please read some of the existing code to get a feeling for the current style before submitting anything, and also run [rustfmt](https://github.com/rust-lang-nursery/rustfmt) on your submission using this repository's configuration. Since this is just my hobby project at the moment, please be patient if I nitpick your PR -- there are no practical goals here so I'd like to keep things nice (even if it's at the expense of time spent or contributions lost).
+CI is now set up for Pull Requests, so that needs to pass before a PR is
+reviewed. There aren't enough contributions right now to write a style guide,
+but before submitting anything please read some of the existing code to get a
+feeling for the current style before submitting anything, and also run
+[rustfmt](https://github.com/rust-lang-nursery/rustfmt) on your submission using
+this repository's configuration. Since this is just my hobby project at the
+moment, please be patient if I nitpick your PR -- there are no practical goals
+here so I'd like to keep things nice (even if it's at the expense of time spent
+or contributions lost).
 
-Please see issue #6 if you'd like help figuring out a starting point for contributions.
+Please see issue #6 if you'd like help figuring out a starting point for
+contributions.
+
+### Tips & Caveats
+
+As you port musl functions to Rust, you'll eventually expose one or more `pub`
+functions in `rusl`. For example, `malloc` from `musl/src/malloc/malloc.c` is
+ported to `malloc` in `src/malloc/malloc.rs`. Other (non-public, `static`)
+functions from `malloc.c` might get ported but won't necessarily be exposed as
+`pub`lic. With new `pub` functions `librusl.a` will contain symbols which
+conflict with object files in musl's `libc.a`, and the build will fail. The
+solution is to put the name of the object file with the conflicting symbols in a
+file called `ported_objects` living in the root of the repo. It describes all
+the object files which should be deleted from musl's `libc.a` so we don't get
+symbol conflicts during linking. One small caveat is that a few functions
+(`memset`, `memcmp`, and friends) are provided by `rlibc`, not `rusl`, but we
+still need to remove the symbols from musl's `libc.a` before mixing in `rusl`
+symbols.
+
+Effectively, this means you should not expose new `pub`lic functions in `rusl`
+until an entire C source file has been ported. Don't worry; let build failures
+be your guide.
+
+You can use `nm bld/usr/lib/libc.a | less` to verify the object filename
+providing a given symbol. Sometimes they don't match (i.e., `vmlock.c` -->
+`__vm_lock`).
 
 ## Documentation
 
