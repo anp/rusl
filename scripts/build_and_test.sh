@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -ex
+set -e
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 BASE_DIR=${DIR}/..
@@ -14,7 +14,6 @@ mkdir -p "${BUILD_DIR}"/usr
 "${SCRIPT_DIR}"/frankenstein.sh
 "${SCRIPT_DIR}"/test_rusl.sh
 
-set +x
 echo
 echo
 echo

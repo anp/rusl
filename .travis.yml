@@ -12,8 +12,4 @@ before_script:
   - export PATH=$PATH:$HOME/.cargo/bin/
 script:
   - scripts/check_format.sh
-  - mkdir -p bld/usr
-  - scripts/musl.sh
-  - scripts/rusl.sh
-  - scripts/frankenstein.sh
-  - scripts/test.sh
+  - scripts/build_and_test.sh
