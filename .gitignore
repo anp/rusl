@@ -7,4 +7,5 @@ bld
 *.lo
 libc-test/src/common/options.h
 rusl_failures
+musl_failures
 *.bk

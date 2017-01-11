@@ -5,7 +5,7 @@ set -e
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 BASE_DIR=${DIR}/..
 
-cd ${BASE_DIR}
+cd "${BASE_DIR}"
 
 # check to see if any rusl failures are new failures
 # we need to invert the exit code of grep here, if nothing's found it's a good thing

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -ex
+set -e
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 BASE_DIR=${DIR}/..
@@ -10,7 +10,7 @@ BUILD_DIR=${BASE_DIR}/bld
 cd "${BUILD_DIR}"/usr/lib
 LIB_TEMP_DIR="${BUILD_DIR}"/usr/lib/temp
 mkdir "${LIB_TEMP_DIR}"
-mv librusl.a "${LIB_TEMP_DIR}"/
+mv "${BASE_DIR}"/target/release/librusl.a "${LIB_TEMP_DIR}"/
 
 cd "${LIB_TEMP_DIR}"
 # delete all ported object files from libc.a
