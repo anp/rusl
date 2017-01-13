@@ -21,22 +21,14 @@ pub extern "C" fn traverses_stack_p(old: usize, new: usize) -> c_int {
     let len = 8usize << 20;
 
     let b = *AUXV_PTR;
-    let a = if b > len {
-        b - len
-    } else {
-        0
-    };
+    let a = if b > len { b - len } else { 0 };
 
     if new > a && old < b {
         return 1;
     }
 
     let b = (&b as *const usize) as usize;
-    let a = if b > len {
-        b - len
-    } else {
-        0
-    };
+    let a = if b > len { b - len } else { 0 };
 
     if new > a && old < b {
         return 1;
