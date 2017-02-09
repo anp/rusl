@@ -1,7 +1,7 @@
 language: rust
 env:
   global:
-    - RUSTFMT_VERSION=0.5.0
+    - RUSTFMT_VERSION=0.7.1
 cache:
   directories:
   - $HOME/.cargo/bin
