@@ -74,6 +74,7 @@ pub unsafe fn mremap_helper(old_address: *mut c_void,
     syscall!(MREMAP, old_address, old_len, new_len, flags, new_address) as *mut c_void
 }
 
+#[linkage = "weak"]
 #[no_mangle]
 pub unsafe extern "C" fn madvise(address: *mut c_void, len: usize, advice: c_int) -> c_int {
     syscall!(MADVISE, address, len, advice) as c_int
@@ -99,9 +100,11 @@ pub unsafe extern "C" fn mlockall(flags: c_int) -> c_int { syscall!(MLOCKALL, fl
 
 
 // aliases
+#[linkage = "weak"]
 #[no_mangle]
 pub unsafe extern "C" fn munmap(start: *mut c_void, len: size_t) -> c_int { __munmap(start, len) }
 
+#[linkage = "weak"]
 #[no_mangle]
 pub unsafe extern "C" fn mmap(start: *mut c_void,
                               len: size_t,
@@ -113,6 +116,7 @@ pub unsafe extern "C" fn mmap(start: *mut c_void,
     __mmap(start, len, prot, flags, fd, off)
 }
 
+#[linkage = "weak"]
 #[no_mangle]
 pub unsafe extern "C" fn mmap64(start: *mut c_void,
                                 len: size_t,
@@ -124,6 +128,7 @@ pub unsafe extern "C" fn mmap64(start: *mut c_void,
     __mmap(start, len, prot, flags, fd, off)
 }
 
+#[linkage = "weak"]
 #[no_mangle]
 pub unsafe extern "C" fn mremap(old_address: *mut c_void,
                                 old_len: size_t,

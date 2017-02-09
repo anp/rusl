@@ -23,6 +23,7 @@ pub unsafe extern "C" fn __clock_gettime(clock: clockid_t, spec: &mut timespec) 
     clock_gettime(clock, spec)
 }
 
+#[linkage = "weak"]
 #[no_mangle]
 pub unsafe extern "C" fn clock_gettime(clock: clockid_t, spec: &mut timespec) -> c_int {
     let mut r = syscall!(CLOCK_GETTIME, clock, spec as *mut timespec) as c_int;

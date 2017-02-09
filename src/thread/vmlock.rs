@@ -4,6 +4,7 @@ use thread::{__wait, __wake};
 
 static mut LOCK: [c_int; 2] = [0, 0];
 
+#[linkage = "weak"]
 #[no_mangle]
 pub unsafe extern "C" fn __vm_wait() {
     let mut tmp = LOCK[0];
