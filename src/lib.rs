@@ -15,6 +15,7 @@ pub use rlibc::*;
 #[macro_use]
 pub mod syscall_mgt;
 
+pub mod exit;
 pub mod malloc;
 pub mod mmap;
 pub mod string;

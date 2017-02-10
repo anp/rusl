@@ -1,3 +1,5 @@
+_Exit.o
+_exit.o
 __errno_location.o
 __wait.o
 access.o
@@ -13,6 +15,7 @@ clock_nanosleep.o
 clock_settime.o
 close.o
 ctermid.o
+exit.o
 expand_heap.o
 madvise.o
 malloc.o
@@ -26,6 +29,7 @@ mlockall.o
 mmap.o
 mremap.o
 munmap.o
+quick_exit.o
 stpcpy.o
 strcmp.o
 strcpy.o
