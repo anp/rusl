@@ -15,6 +15,8 @@ clock_nanosleep.o
 clock_settime.o
 close.o
 ctermid.o
+dup.o
+dup2.o
 exit.o
 expand_heap.o
 madvise.o

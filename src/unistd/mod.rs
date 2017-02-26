@@ -6,3 +6,5 @@ pub mod chdir;
 pub mod chown;
 pub mod close;
 pub mod ctermid;
+pub mod dup;
+pub mod dup2;
