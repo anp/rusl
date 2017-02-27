@@ -1,13 +1,14 @@
 #![no_std]
-#![feature(asm, const_fn, lang_items, linkage)]
+#![feature(asm, const_fn, lang_items, linkage, compiler_builtins_lib)]
 
 #![allow(non_camel_case_types)]
 
+extern crate compiler_builtins;
 #[macro_use]
 extern crate lazy_static;
 extern crate rlibc;
 extern crate spin;
-extern crate syscall;
+extern crate sc as syscall;
 extern crate va_list;
 
 pub use rlibc::*;
@@ -34,3 +35,8 @@ pub use platform::environ;
 pub use platform::mman;
 pub use platform::pthread;
 pub use platform::signal;
+
+#[cfg(not(test))]
+#[lang = "panic_fmt"]
+#[no_mangle]
+extern "C" fn panic_fmt() {}
