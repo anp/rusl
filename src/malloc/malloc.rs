@@ -376,7 +376,7 @@ impl Heap {
     }
 
     unsafe fn expand(&self, mut n: usize) -> *mut Chunk {
-        static mut heap_lock: Mutex<*mut c_void> = Mutex::new(ptr::null_mut());
+        static mut HEAP_LOCK: Mutex<*mut c_void> = Mutex::new(ptr::null_mut());
 
         let mut p: *mut c_void;
         let mut w: *mut Chunk;
@@ -386,7 +386,7 @@ impl Heap {
         // we need room for an extra zero-sized sentinel chunk.
         n += SIZE_ALIGN;
 
-        let mut end = heap_lock.lock();
+        let mut end = HEAP_LOCK.lock();
 
         p = __expand_heap(&mut n as *mut usize);
 

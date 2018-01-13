@@ -47,8 +47,8 @@ pub extern "C" fn traverses_stack_p(old: usize, new: usize) -> c_int {
 
 #[no_mangle]
 pub unsafe extern "C" fn __expand_heap(pn: *mut size_t) -> *mut c_void {
-    static mut brk: usize = 0;
-    static mut mmap_step: c_uint = 0;
+    static mut BRK: usize = 0;
+    static mut MMAP_STEP: c_uint = 0;
 
     let mut n = *pn;
 
@@ -59,19 +59,19 @@ pub unsafe extern "C" fn __expand_heap(pn: *mut size_t) -> *mut c_void {
 
     n += (-Wrapping(n)).0 & (PAGE_SIZE as usize - 1);
 
-    if brk == 0 {
-        brk = syscall!(BRK, 0);
-        brk += (-Wrapping(brk)).0 & (PAGE_SIZE - 1) as usize;
+    if BRK == 0 {
+        BRK = syscall!(BRK, 0);
+        BRK += (-Wrapping(BRK)).0 & (PAGE_SIZE - 1) as usize;
     }
 
-    if n < (usize::MAX - brk) && traverses_stack_p(brk, brk + n) == 0 &&
-       syscall!(BRK, brk + n) == brk + n {
+    if n < (usize::MAX - BRK) && traverses_stack_p(BRK, BRK + n) == 0 &&
+       syscall!(BRK, BRK + n) == BRK + n {
         *pn = n;
-        brk += n;
-        return (brk - n) as *mut c_void;
+        BRK += n;
+        return (BRK - n) as *mut c_void;
     }
 
-    let min = (PAGE_SIZE << (mmap_step / 2)) as usize;
+    let min = (PAGE_SIZE << (MMAP_STEP / 2)) as usize;
 
     if n < min {
         n = min;
@@ -89,7 +89,7 @@ pub unsafe extern "C" fn __expand_heap(pn: *mut size_t) -> *mut c_void {
     }
 
     *pn = n;
-    mmap_step += 1;
+    MMAP_STEP += 1;
 
     area
 }
