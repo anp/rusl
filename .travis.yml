@@ -1,14 +1,11 @@
 language: rust
-env:
-  global:
-    - RUSTFMT_VERSION=0.7.1
 cache:
   directories:
   - $HOME/.cargo/bin
 rust:
   - nightly
 before_script:
-  - if [ ! -f $HOME/.cargo/bin/rustfmt ]; then cargo install rustfmt --vers $RUSTFMT_VERSION; else echo "rustfmt already installed"; fi
+  - rustup component add --toolchain nightly rustfmt-preview
   - export PATH=$PATH:$HOME/.cargo/bin/
 script:
   - scripts/check_format.sh

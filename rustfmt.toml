@@ -1,3 +1,2 @@
 fn_single_line = true
-fn_args_paren_newline = false
 wrap_comments = true
