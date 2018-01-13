@@ -15,4 +15,3 @@ echo "CFLAGS += -static -isystem ${BUILD_DIR}/usr/include -B${BUILD_DIR}/usr/lib
 echo "LDFLAGS += -static -isystem ${BUILD_DIR}/usr/include -B${BUILD_DIR}/usr/lib -L${BUILD_DIR}/usr/lib" >> config.mak
 make -j "${NUM_CPUS}" CC="${BUILD_DIR}"/usr/bin/musl-gcc
 grep FAIL < "${TESTS_SRC_DIR}"/src/REPORT > "${BASE_DIR}"/musl_failures
-make cleanall
