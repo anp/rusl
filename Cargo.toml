@@ -5,15 +5,15 @@ authors = ["Adam Perry <adam.n.perry@gmail.com>"]
 
 [lib]
 name = "rusl"
-crate-type = ["staticlib", "dylib"]
+crate-type = ["staticlib", "cdylib"]
 
 [dependencies]
-lazy_static = { version = "0.2.2", features = ["spin_no_std"] }
+lazy_static = { version = "1.0.0", features = ["spin_no_std"] }
 rlibc = "1.0.0"
-spin = "0.4.5"
-sc = "0.1.5"
+spin = "0.4.6"
+sc = "0.2.2"
 va_list = { version = "0.1.0", features = ["no_std"] }
-compiler_builtins = { git = "https://github.com/rust-lang-nursery/compiler-builtins", rev = "0507842b248b29d18855042544cf209371ea17c1" }
+compiler_builtins = { git = "https://github.com/rust-lang-nursery/compiler-builtins", rev = "0ba07e49264a54cb5bbd4856fcea083bb3fbec15" }
 
 [profile.dev]
 panic = "abort"
