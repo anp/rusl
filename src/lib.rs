@@ -1,5 +1,6 @@
 #![no_std]
 #![feature(asm, const_fn, lang_items, linkage, compiler_builtins_lib)]
+#![feature(pointer_methods)]
 
 #![allow(non_camel_case_types)]
 

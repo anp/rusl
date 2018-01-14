@@ -5,6 +5,9 @@ __wait.o
 access.o
 acct.o
 alarm.o
+bcmp.o
+bcopy.o
+bzero.o
 chdir.o
 chown.o
 clock.o
@@ -19,6 +22,7 @@ dup.o
 dup2.o
 exit.o
 expand_heap.o
+index.o
 madvise.o
 malloc.o
 memcmp.o
@@ -33,6 +37,8 @@ mremap.o
 munmap.o
 quick_exit.o
 stpcpy.o
+strchr.o
+strchrnul.o
 strcmp.o
 strcpy.o
 strlen.o
