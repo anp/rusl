@@ -2,6 +2,7 @@ pub mod stpcpy;
 pub mod strcpy;
 pub mod strchr;
 pub mod strchrnul;
+pub mod strdup;
 pub mod strlen;
 pub mod strcmp;
 pub mod strrchr;
