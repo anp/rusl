@@ -2,6 +2,8 @@ use core::isize;
 use core::mem::transmute;
 use core::ptr;
 
+use memcpy;
+
 use spin::Mutex;
 
 use c_types::*;
@@ -211,7 +213,7 @@ impl Heap {
 
             let new = malloc(n);
             if new_len < PAGE_SIZE as usize && !new.is_null() {
-                memcpy(new, p, n - OVERHEAD);
+                memcpy(new as *mut u8, p as *const u8, n - OVERHEAD);
                 free(p);
                 return new;
             }
@@ -269,7 +271,7 @@ impl Heap {
             return ptr::null_mut();
         }
 
-        memcpy(new, p, n0 - OVERHEAD);
+        memcpy(new as *mut u8, p as *const u8, n0 - OVERHEAD);
         free((*s).as_mem());
 
         new
@@ -550,10 +552,6 @@ impl Heap {
             0
         }
     }
-}
-
-extern "C" {
-    fn memcpy(dest: *mut c_void, src: *const c_void, n: usize) -> *mut u8;
 }
 
 #[no_mangle]

@@ -1,11 +1,14 @@
 use core::isize;
+use core::ptr;
 
 use va_list::VaList;
 
 use c_types::*;
-use errno::{set_errno, EINVAL, ENOMEM};
+use errno::{set_errno, EPERM, EINVAL, ENOMEM};
 use platform::mman::*;
 use thread::vmlock::__vm_wait;
+
+use syscall_mgt::syscall_return;
 
 #[no_mangle]
 pub unsafe extern "C" fn __munmap(start: *mut c_void, len: size_t) -> c_int {
@@ -36,7 +39,11 @@ pub unsafe extern "C" fn __mmap(start: *mut c_void,
         __vm_wait();
     }
 
-    syscall!(MMAP, start, len, prot, flags, fd, off) as *mut c_void
+    let mut ret = syscall!(MMAP, start, len, prot, flags, fd, off);
+    if ret == -EPERM as usize && start == ptr::null_mut() && (flags & MAP_ANON) != 0 && (flags & MAP_FIXED) == 0 {
+        ret = -ENOMEM as usize;
+    }
+    syscall_return(ret) as *mut c_void
 }
 
 #[no_mangle]
