@@ -39,6 +39,8 @@ pub unsafe extern "C" fn __mmap(start: *mut c_void,
         __vm_wait();
     }
 
+    // Ported this fixup from
+    // http://git.musl-libc.org/cgit/musl/commit/src/mman/mmap.c?id=da438ee1fc516c41ba1790cef7be551a9e244397
     let mut ret = syscall!(MMAP, start, len, prot, flags, fd, off);
     if ret == -EPERM as usize && start == ptr::null_mut() && (flags & MAP_ANON) != 0 && (flags & MAP_FIXED) == 0 {
         ret = -ENOMEM as usize;
