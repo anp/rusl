@@ -28,6 +28,7 @@ malloc.o
 memcmp.o
 memcpy.o
 memmove.o
+memrchr.o
 memset.o
 mincore.o
 mlock.o
@@ -36,11 +37,13 @@ mmap.o
 mremap.o
 munmap.o
 quick_exit.o
+rindex.o
 stpcpy.o
 strchr.o
 strchrnul.o
 strcmp.o
 strcpy.o
 strlen.o
+strrchr.o
 strspn.o
 vmlock.o
