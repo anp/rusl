@@ -8,5 +8,5 @@ TESTS_SRC_DIR=${BASE_DIR}/libc-test
 
 rm -dr "${BUILD_DIR}"
 cd "${MUSL_SRC_DIR}" && make clean
-cd "${TESTS_SRC_DIR}" && make cleanall
+cd "${TESTS_SRC_DIR}" && make cleanall && rm "${TESTS_SRC_DIR}"/config.mak
 cd "${BASE_DIR}" && cargo clean

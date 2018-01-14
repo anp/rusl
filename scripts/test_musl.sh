@@ -13,5 +13,6 @@ cd "${TESTS_SRC_DIR}"
 cp config.mak.def config.mak
 echo "CFLAGS += -static -isystem ${BUILD_DIR}/usr/include -B${BUILD_DIR}/usr/lib -L${BUILD_DIR}/usr/lib" >> config.mak
 echo "LDFLAGS += -static -isystem ${BUILD_DIR}/usr/include -B${BUILD_DIR}/usr/lib -L${BUILD_DIR}/usr/lib" >> config.mak
+make clean
 make -j "${NUM_CPUS}" CC="${BUILD_DIR}"/usr/bin/musl-gcc
 grep FAIL < "${TESTS_SRC_DIR}"/src/REPORT > "${BASE_DIR}"/musl_failures

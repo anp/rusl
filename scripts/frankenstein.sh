@@ -9,7 +9,7 @@ BUILD_DIR=${BASE_DIR}/bld
 # move the two archives into a tempdir
 cd "${BUILD_DIR}"/usr/lib
 LIB_RUSL_DIR="${BUILD_DIR}"/usr/librusl
-mkdir "${LIB_RUSL_DIR}"
+mkdir -p "${LIB_RUSL_DIR}"
 cp "${BASE_DIR}"/target/release/librusl.a "${LIB_RUSL_DIR}"/
 cp -t "${LIB_RUSL_DIR}"/ *.a *.specs # get .o files in a bit
 
