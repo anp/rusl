@@ -10,7 +10,7 @@ use c_types::*;
 use errno::{set_errno, ENOMEM};
 use malloc::expand_heap::__expand_heap;
 use mmap::{__madvise, __mmap, __munmap, mremap_helper};
-use platform::atomic::{a_and_64, a_crash, a_ctz_64, a_or_64, a_store, a_swap};
+use platform::atomic::{a_crash, a_store, a_swap, a_and_64, a_ctz_64, a_or_64};
 use platform::malloc::*;
 use platform::mman::*;
 use thread::{__wait, __wake};
@@ -49,7 +49,9 @@ impl Chunk {
         free((*split).as_mem());
     }
 
-    pub fn is_mmapped(&self) -> bool { (self.csize & 1) == 0 }
+    pub fn is_mmapped(&self) -> bool {
+        (self.csize & 1) == 0
+    }
 
     pub unsafe fn from_mem(ptr: *mut c_void) -> *mut Chunk {
         ((ptr as *mut u8).offset(-(OVERHEAD as isize))) as *mut Chunk
@@ -59,9 +61,13 @@ impl Chunk {
         (self as *const Chunk as *const u8).offset(OVERHEAD as isize) as *mut c_void
     }
 
-    pub fn size(&self) -> usize { self.csize & ((-2i64) as usize) }
+    pub fn size(&self) -> usize {
+        self.csize & ((-2i64) as usize)
+    }
 
-    pub fn psize(&self) -> usize { self.psize & ((-2i64) as usize) }
+    pub fn psize(&self) -> usize {
+        self.psize & ((-2i64) as usize)
+    }
 
     unsafe fn previous(&self) -> *mut Chunk {
         (self as *const Self as *const u8).offset(-(self.psize() as isize)) as *mut Chunk
@@ -114,7 +120,6 @@ macro_rules! array {
     [$e:expr; $n:tt] => { array!(@accum ($n, $e) -> ()) };
 }
 
-
 impl Heap {
     const fn new() -> Self {
         Heap {
@@ -132,12 +137,14 @@ impl Heap {
 
         if n > MMAP_THRESHOLD {
             let len = n + OVERHEAD + PAGE_SIZE as usize - 1 & (-PAGE_SIZE) as usize;
-            let base = __mmap(ptr::null_mut(),
-                              len,
-                              PROT_READ | PROT_WRITE,
-                              MAP_PRIVATE | MAP_ANONYMOUS,
-                              -1,
-                              0) as *mut u8;
+            let base = __mmap(
+                ptr::null_mut(),
+                len,
+                PROT_READ | PROT_WRITE,
+                MAP_PRIVATE | MAP_ANONYMOUS,
+                -1,
+                0,
+            ) as *mut u8;
 
             if base == ((-1isize) as usize) as *mut u8 {
                 return ptr::null_mut();
@@ -495,8 +502,8 @@ impl Heap {
             x as c_int
         } else {
             unsafe {
-                ((transmute::<c_float, u32>((x as c_int) as c_float) + 0x1fffff >> 21) -
-                 496) as c_int
+                ((transmute::<c_float, u32>((x as c_int) as c_float) + 0x1fffff >> 21) - 496)
+                    as c_int
             }
         }
     }
@@ -555,7 +562,9 @@ impl Heap {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn malloc(n: usize) -> *mut c_void { HEAP.allocate(n) }
+pub unsafe extern "C" fn malloc(n: usize) -> *mut c_void {
+    HEAP.allocate(n)
+}
 
 #[no_mangle]
 pub unsafe extern "C" fn __malloc0(n: usize) -> *mut c_void {
@@ -573,10 +582,14 @@ pub unsafe extern "C" fn __malloc0(n: usize) -> *mut c_void {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn free(p: *mut c_void) { HEAP.free_ptr(p); }
+pub unsafe extern "C" fn free(p: *mut c_void) {
+    HEAP.free_ptr(p);
+}
 
 #[no_mangle]
-pub unsafe extern "C" fn realloc(p: *mut c_void, n: usize) -> *mut c_void { HEAP.reallocate(p, n) }
+pub unsafe extern "C" fn realloc(p: *mut c_void, n: usize) -> *mut c_void {
+    HEAP.reallocate(p, n)
+}
 
 unsafe fn lock(lock: *mut c_int) {
     while a_swap(lock, 1) != 0 {
@@ -593,7 +606,9 @@ unsafe fn unlock(lock: *mut c_int) {
     }
 }
 
-unsafe fn unlock_bin(i: c_int) { unlock(&mut HEAP.bins[i as usize].lock[0]); }
+unsafe fn unlock_bin(i: c_int) {
+    unlock(&mut HEAP.bins[i as usize].lock[0]);
+}
 
 unsafe fn lock_bin(i: c_int) {
     let i = i as usize;

@@ -15,10 +15,12 @@ pub unsafe extern "C" fn alarm(seconds: c_uint) -> c_uint {
         },
     };
 
-    syscall!(SETITIMER,
-             ITIMER_REAL,
-             &mut it as *mut itimerval,
-             &mut it as *mut itimerval);
+    syscall!(
+        SETITIMER,
+        ITIMER_REAL,
+        &mut it as *mut itimerval,
+        &mut it as *mut itimerval
+    );
 
     (it.it_value.tv_sec + !!it.it_value.tv_usec) as c_uint
 }

@@ -1,8 +1,8 @@
 pub mod pthread;
 pub mod vmlock;
 
-use c_types::*;
 use atomic::{a_dec, a_inc, a_spin};
+use c_types::*;
 use errno::ENOSYS;
 
 pub const FUTEX_WAIT: c_int = 0;
@@ -32,11 +32,12 @@ pub unsafe extern "C" fn __wake(address: *mut c_void, count: c_int, private: c_i
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn __wait(address: *mut c_int,
-                                waiters: *mut c_int,
-                                val: c_int,
-                                private: c_int) {
-
+pub unsafe extern "C" fn __wait(
+    address: *mut c_int,
+    waiters: *mut c_int,
+    val: c_int,
+    private: c_int,
+) {
     let private = if private != 0 { FUTEX_PRIVATE } else { private };
 
     for _ in 0..100 {

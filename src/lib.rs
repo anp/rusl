@@ -2,6 +2,7 @@
 #![feature(asm, const_fn, lang_items, linkage, compiler_builtins_lib)]
 #![feature(pointer_methods)]
 #![allow(non_camel_case_types)]
+#![cfg_attr(feature = "cargo-clippy", allow(inline_always))]
 
 extern crate compiler_builtins;
 #[macro_use]
@@ -30,8 +31,8 @@ pub mod platform;
 
 pub use platform::atomic;
 pub use platform::c_types;
-pub use platform::errno;
 pub use platform::environ;
+pub use platform::errno;
 pub use platform::mman;
 pub use platform::pthread;
 pub use platform::signal;

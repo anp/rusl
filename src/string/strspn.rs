@@ -37,7 +37,7 @@ pub unsafe extern "C" fn strspn(string: *const c_schar, chars: *const c_schar) -
         j += 1;
     }
 
-    return j as usize;
+    j as usize
 }
 
 const ASCII_MAX_VALUE: usize = 127;
@@ -49,7 +49,11 @@ struct AsciiBitArray {
 }
 
 impl AsciiBitArray {
-    fn new() -> AsciiBitArray { AsciiBitArray { bit_array: [0; BIT_ARRAY_LEN] } }
+    fn new() -> AsciiBitArray {
+        AsciiBitArray {
+            bit_array: [0; BIT_ARRAY_LEN],
+        }
+    }
 
     fn set_bit(&mut self, index: usize) {
         let value = (1u32 << (index % U32_N_BITS)) as u32;

@@ -1,5 +1,5 @@
-use memmove;
 use c_types::{c_void, size_t};
+use memmove;
 
 #[no_mangle]
 pub unsafe extern "C" fn bcopy(s1: *const c_void, s2: *mut c_void, n: size_t) {

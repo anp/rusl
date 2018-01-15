@@ -1,5 +1,5 @@
-use core::mem;
 use super::has_zero;
+use core::mem;
 
 use c_types::{c_schar, size_t, uintptr_t};
 

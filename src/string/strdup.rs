@@ -1,7 +1,7 @@
-use c_types::c_schar;
 use super::strlen::strlen;
-use malloc::malloc::malloc;
+use c_types::c_schar;
 use core::ptr;
+use malloc::malloc::malloc;
 use memcpy;
 
 #[linkage = "weak"]
@@ -17,4 +17,6 @@ pub unsafe extern "C" fn strdup(s: *const c_schar) -> *const c_schar {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn __strdup(s: *const c_schar) -> *const c_schar { strdup(s) }
+pub unsafe extern "C" fn __strdup(s: *const c_schar) -> *const c_schar {
+    strdup(s)
+}

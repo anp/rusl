@@ -1,4 +1,4 @@
-use c_types::{c_void, c_int, size_t};
+use c_types::{c_int, c_void, size_t};
 use core::ptr;
 
 #[linkage = "weak"]

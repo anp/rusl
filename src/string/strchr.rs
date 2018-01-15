@@ -1,4 +1,5 @@
-use c_types::{c_schar, c_uchar, c_int};
+use c_types::{c_int, c_schar, c_uchar};
+use core::ptr;
 use string::strchrnul::__strchrnul;
 
 #[no_mangle]
@@ -7,6 +8,6 @@ pub unsafe extern "C" fn strchr(s: *const c_schar, c: c_int) -> *const c_schar {
     if *(r as *const c_uchar) == c as c_uchar {
         r
     } else {
-        0 as *const c_schar
+        ptr::null()
     }
 }

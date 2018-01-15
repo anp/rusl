@@ -1,3 +1,9 @@
+pub mod bcmp;
+pub mod bcopy;
+pub mod bzero;
+pub mod index;
+pub mod memrchr;
+pub mod rindex;
 pub mod stpcpy;
 pub mod strcpy;
 pub mod strchr;
@@ -7,12 +13,6 @@ pub mod strlen;
 pub mod strcmp;
 pub mod strrchr;
 pub mod strspn;
-pub mod bzero;
-pub mod bcmp;
-pub mod bcopy;
-pub mod index;
-pub mod rindex;
-pub mod memrchr;
 
 #[cfg_attr(rustfmt, rustfmt_skip)]
 const ONES:  usize = 0x0101010101010101_usize;

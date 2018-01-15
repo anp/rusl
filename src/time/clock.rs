@@ -49,11 +49,11 @@ pub unsafe extern "C" fn clock() -> clock_t {
 
     if clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &mut spec) != 0 {
         return u64::MAX;
-
     }
 
-    if spec.tv_sec as u64 > u64::MAX / 1_000_000 ||
-       (spec.tv_nsec / 1000) as u64 > (u64::MAX - 1_000_000) * spec.tv_sec as u64 {
+    if spec.tv_sec as u64 > u64::MAX / 1_000_000
+        || (spec.tv_nsec / 1000) as u64 > (u64::MAX - 1_000_000) * spec.tv_sec as u64
+    {
         return u64::MAX;
     }
 
@@ -83,16 +83,19 @@ pub unsafe extern "C" fn clock_getres(clock: clockid_t, spec: &mut timespec) -> 
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn clock_nanosleep(clock: clockid_t,
-                                         flags: c_int,
-                                         req: &timespec,
-                                         rem: &mut timespec)
-                                         -> c_int {
-    -(syscall!(CLOCK_NANOSLEEP,
-               clock,
-               flags,
-               req as *const timespec,
-               rem as *mut timespec) as c_int)
+pub unsafe extern "C" fn clock_nanosleep(
+    clock: clockid_t,
+    flags: c_int,
+    req: &timespec,
+    rem: &mut timespec,
+) -> c_int {
+    -(syscall!(
+        CLOCK_NANOSLEEP,
+        clock,
+        flags,
+        req as *const timespec,
+        rem as *mut timespec
+    ) as c_int)
 }
 
 #[no_mangle]

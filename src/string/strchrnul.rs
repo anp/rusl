@@ -1,6 +1,6 @@
+use super::{has_zero, ONES};
+use c_types::{c_int, c_schar, c_uchar, size_t, uintptr_t};
 use core::mem;
-use super::{ONES, has_zero};
-use c_types::{c_schar, c_uchar, c_int, size_t, uintptr_t};
 use string::strlen::strlen;
 
 #[no_mangle]
@@ -34,5 +34,5 @@ pub unsafe extern "C" fn strchrnul(s: *const c_schar, c: c_int) -> *const c_scha
     while *_s != 0 && *(_s as *const c_uchar) != c {
         _s = _s.offset(1);
     }
-    return _s;
+    _s
 }

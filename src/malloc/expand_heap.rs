@@ -5,8 +5,8 @@ use core::usize;
 use c_types::*;
 use environ::AUXV_PTR;
 use errno::{set_errno, ENOMEM};
-use platform::mman::*;
 use mmap::__mmap;
+use platform::mman::*;
 
 /// Comment from original musl C function:
 ///
@@ -17,7 +17,6 @@ use mmap::__mmap;
 /// buggy brk implementations that can cross the stack.
 #[no_mangle]
 pub extern "C" fn traverses_stack_p(old: usize, new: usize) -> c_int {
-
     let len = 8usize << 20;
 
     let b = *AUXV_PTR;
@@ -64,8 +63,9 @@ pub unsafe extern "C" fn __expand_heap(pn: *mut size_t) -> *mut c_void {
         BRK += (-Wrapping(BRK)).0 & (PAGE_SIZE - 1) as usize;
     }
 
-    if n < (usize::MAX - BRK) && traverses_stack_p(BRK, BRK + n) == 0 &&
-       syscall!(BRK, BRK + n) == BRK + n {
+    if n < (usize::MAX - BRK) && traverses_stack_p(BRK, BRK + n) == 0
+        && syscall!(BRK, BRK + n) == BRK + n
+    {
         *pn = n;
         BRK += n;
         return (BRK - n) as *mut c_void;
@@ -77,12 +77,14 @@ pub unsafe extern "C" fn __expand_heap(pn: *mut size_t) -> *mut c_void {
         n = min;
     }
 
-    let area = __mmap(ptr::null_mut(),
-                      n,
-                      PROT_READ | PROT_WRITE,
-                      MAP_PRIVATE | MAP_ANONYMOUS,
-                      -1,
-                      0);
+    let area = __mmap(
+        ptr::null_mut(),
+        n,
+        PROT_READ | PROT_WRITE,
+        MAP_PRIVATE | MAP_ANONYMOUS,
+        -1,
+        0,
+    );
 
     if area == MAP_FAILED {
         return ptr::null_mut();

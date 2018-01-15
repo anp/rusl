@@ -1,5 +1,5 @@
-use c_types::c_int;
 use super::_Exit::_Exit;
+use c_types::c_int;
 
 #[linkage = "weak"]
 #[no_mangle]
